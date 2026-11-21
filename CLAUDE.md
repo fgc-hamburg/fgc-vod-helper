@@ -32,6 +32,7 @@ Every PR needs a good description built from its ticket (template: `.github/pull
   - a screenshot for something that looks different, or a short video/GIF (under ~20 s) for something that moves or has steps;
   - before and after, when an existing screen changed;
   - one or two sentences telling the reviewer what to look at and what to judge ("Check the Connect buttons are clear about which accounts are required").
+- Screenshots for PRs come from `make ui-snapshots` (screens rendered in tests). Agents never capture the real screen.
 - Media goes on the `pr-media` branch, never on the feature branch (see `implement-ticket` skill, step 7).
 
 ## Code layout
@@ -41,6 +42,7 @@ Every PR needs a good description built from its ticket (template: `.github/pull
 - `app/` — the Compose Desktop window, screens and installer settings, in `src/jvmMain` / `src/jvmTest`. Depends on `core`. Package `de.fgchamburg.vodhelper.app`.
 - Version: `app.version` in `gradle.properties` is the only place it's set. `-Papp.version=x.y.z` overrides it for one build. The build fails early on an invalid version.
 - `BuildConfig` (version and build-time keys) is generated into `core/build/` at build time. Never commit it.
+- Bundled video tools (ffmpeg, ffprobe, yt-dlp, VLC engine): pinned in `buildSrc/src/main/kotlin/de/fgchamburg/vodhelper/buildlogic/VideoToolPins.kt`, unpacked by `:app:prepareVideoTools`, licenses in `THIRD_PARTY_NOTICES.md`. Code finds them through `VideoToolsLayout`; steps call `VideoToolsReport.require(tool)` before using one.
 - Installers: `app/build.gradle.kts` → `nativeDistributions`. The Windows `upgradeUuid` must never change.
 
 ## Build and test
@@ -54,8 +56,10 @@ Every PR needs a good description built from its ticket (template: `.github/pull
 | Compile, test, lint (what CI runs; must pass before a PR) | `make check` |
 | Unit tests only | `make test` |
 | Build this OS's installer into `dist/` (version from `gradle.properties`, or `VERSION=1.2.3`) | `make package` |
+| Check the packaged app finds and runs its bundled video tools (after `make package`) | `make verify-package` |
 | Release `app.version` (or `VERSION=1.2.3`): tags `main`, CI builds installers and publishes the GitHub Release | `make release` |
 | Worktree for a ticket | `make worktree TICKET=FGC-1 BRANCH=<Linear branch name>` |
+| Render the app's screens to PNGs in `media/<TICKET>/` (in tests, no real screen) | `make ui-snapshots TICKET=FGC-1` |
 | Upload PR screenshots/GIFs | `make pr-media TICKET=FGC-1` |
 
 - Versions are `x.y.z` with `x` ≥ 1 (macOS installers require it). The Gradle build reads the version from `-Papp.version`.

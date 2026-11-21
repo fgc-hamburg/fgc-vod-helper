@@ -41,6 +41,9 @@ jobs:
           GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
         run: make package VERSION="${GITHUB_REF_NAME#v}"
 
+      - name: Check bundled video tools
+        run: make verify-package
+
       - uses: actions/upload-artifact@v4
         with:
           name: installer-${{ matrix.os }}

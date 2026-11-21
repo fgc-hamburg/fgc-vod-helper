@@ -31,7 +31,7 @@ include .env
 export $(shell sed -n 's/^\([A-Za-z_][A-Za-z0-9_]*\)=.*/\1/p' .env)
 endif
 
-.PHONY: help setup run check test build package clean version release worktree screenshot record ui-snapshots pr-media
+.PHONY: help setup run check test build package clean version release worktree screenshot record ui-snapshots pr-media verify-package
 
 help: ## List targets
 	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "} {printf "  \033[36m%-11s\033[0m %s\n", $$1, $$2}'
@@ -76,6 +76,9 @@ package: ## Build this OS's installer into a fresh dist/ — make package [VERSI
 		<(find $(BINARIES) \( -name '*-$(VERSION).dmg' -o -name '*-$(VERSION).msi' \) -print0); \
 		[ $$n -eq 1 ] || { echo "Expected 1 installer in $(BINARIES), found $$n"; exit 1; }
 	@ls -1 $(DIST)
+
+verify-package: ## Check the packaged app finds and runs its bundled video tools (after make package)
+	@bash scripts/verify-package.sh
 
 version: ## Print the latest release tag
 	@git describe --tags --abbrev=0 --match 'v*' 2>/dev/null || echo "No release yet"

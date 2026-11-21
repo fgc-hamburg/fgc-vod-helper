@@ -76,6 +76,9 @@ jobs:
       - name: Package
         run: make package
 
+      - name: Check bundled video tools
+        run: make verify-package
+
       - name: Upload installer
         uses: actions/upload-artifact@v4
         with:
