@@ -4,7 +4,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.width
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -16,7 +16,7 @@ import de.fgchamburg.vodhelper.core.tools.VideoToolsReport
 
 @Composable
 fun VideoToolsSection(report: VideoToolsReport?) {
-    Column(modifier = Modifier.widthIn(max = 560.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+    Column(modifier = Modifier.width(560.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
         Text("Video tools", style = MaterialTheme.typography.titleMedium)
         if (report == null) {
             Text("Checking video tools…", style = MaterialTheme.typography.bodyMedium)
