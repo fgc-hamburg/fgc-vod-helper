@@ -58,10 +58,11 @@ fun AppRoot(
     val saveDispatcher = remember { Dispatchers.IO.limitedParallelism(1) }
 
     // Updates the list on screen at once, then writes it to the settings file (read-modify-write).
-    // If the file can't be written the list is still right for this run.
+    // If the file can't be written the list is still right for this run. Runs on the save thread,
+    // so writes from fast typing land in order and the last name always wins.
     suspend fun rememberRecent(list: List<RecentProject>, lastFolder: String? = null) {
         recent = list
-        withContext(Dispatchers.IO) {
+        withContext(saveDispatcher) {
             runCatching {
                 val current = settings.load()
                 settings.save(

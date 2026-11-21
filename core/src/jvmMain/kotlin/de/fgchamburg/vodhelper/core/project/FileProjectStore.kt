@@ -42,10 +42,10 @@ class FileProjectStore internal constructor(
         if (!Files.isRegularFile(file)) return LoadResult.Missing
         val text = try {
             Files.readString(file)
-        } catch (e: IOException) {
-            return LoadResult.Unreadable(e.message ?: "unknown error")
         } catch (e: java.nio.charset.CharacterCodingException) {
             return LoadResult.Unreadable("not valid UTF-8")
+        } catch (e: IOException) {
+            return LoadResult.Unreadable(e.message ?: "unknown error")
         }
         removeLeftoverTempFiles(dir)
         return when (val decoded = ProjectJson.decode(text)) {
