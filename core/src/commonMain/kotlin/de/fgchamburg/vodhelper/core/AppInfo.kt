@@ -6,6 +6,7 @@ data class AppInfo(
     val version: String,
     val twitchConfigured: Boolean,
     val youtubeConfigured: Boolean,
+    val twitchClientId: String = "",
 ) {
     val versionLabel: String get() = "Version $version"
 
@@ -22,6 +23,7 @@ data class AppInfo(
             version = version,
             twitchConfigured = twitchClientId.isNotBlank(),
             youtubeConfigured = googleClientId.isNotBlank() && googleClientSecret.isNotBlank(),
+            twitchClientId = twitchClientId,
         )
 
         fun fromBuildConfig() = from(

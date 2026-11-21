@@ -12,12 +12,14 @@ object AccountMessages {
 
     fun describe(status: AccountStatus): String = when (status) {
         is AccountStatus.Connected -> "Connected as ${status.accountName}"
+        is AccountStatus.NeedsReconnect -> "Access was lost. Reconnect to keep using ${status.accountName}."
         AccountStatus.NotConnected -> "Not connected"
         AccountStatus.NotConfigured -> "Not available in this build of the app"
     }
 
     fun actions(status: AccountStatus): List<AccountAction> = when (status) {
         is AccountStatus.Connected -> listOf(AccountAction.RECONNECT, AccountAction.SIGN_OUT)
+        is AccountStatus.NeedsReconnect -> listOf(AccountAction.RECONNECT, AccountAction.SIGN_OUT)
         AccountStatus.NotConnected -> listOf(AccountAction.CONNECT)
         AccountStatus.NotConfigured -> emptyList()
     }

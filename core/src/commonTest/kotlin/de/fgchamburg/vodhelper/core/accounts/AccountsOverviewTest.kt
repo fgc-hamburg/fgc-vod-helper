@@ -33,4 +33,13 @@ class AccountsOverviewTest {
         val overview = AccountsOverview(mapOf(AccountKind.TWITCH to connected))
         assertEquals(listOf(AccountKind.STARTGG), overview.missingRequired)
     }
+
+    @Test
+    fun `needs reconnect blocks starting a project`() {
+        val overview = AccountsOverview(
+            mapOf(AccountKind.TWITCH to AccountStatus.NeedsReconnect("x"), AccountKind.STARTGG to connected),
+        )
+        assertEquals(listOf(AccountKind.TWITCH), overview.missingRequired)
+        assertFalse(overview.canStartProject)
+    }
 }

@@ -5,4 +5,7 @@ sealed interface AccountStatus {
     data object NotConfigured : AccountStatus
     data object NotConnected : AccountStatus
     data class Connected(val accountName: String) : AccountStatus
+
+    /** Signed in before, but the service took access away. The user must sign in again. */
+    data class NeedsReconnect(val accountName: String) : AccountStatus
 }

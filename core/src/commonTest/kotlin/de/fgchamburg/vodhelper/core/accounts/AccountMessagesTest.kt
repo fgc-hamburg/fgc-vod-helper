@@ -73,4 +73,11 @@ class AccountMessagesTest {
         assertEquals("Accounts", AccountMessages.ACCOUNTS_HEADING)
         assertEquals("Checking accounts…", AccountMessages.CHECKING_ACCOUNTS)
     }
+
+    @Test
+    fun `needs reconnect`() {
+        val status = AccountStatus.NeedsReconnect("fgchamburg")
+        assertEquals("Access was lost. Reconnect to keep using fgchamburg.", AccountMessages.describe(status))
+        assertEquals(listOf(AccountAction.RECONNECT, AccountAction.SIGN_OUT), AccountMessages.actions(status))
+    }
 }

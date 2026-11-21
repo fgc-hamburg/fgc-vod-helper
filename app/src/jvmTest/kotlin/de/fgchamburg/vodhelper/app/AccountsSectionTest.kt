@@ -84,4 +84,13 @@ class AccountsSectionTest {
         onNodeWithText("Checking accounts…").assertIsDisplayed()
         onAllNodesWithText("Connect").assertCountEquals(0)
     }
+
+    @Test
+    fun `needs reconnect shows reconnect`() = runComposeUiTest {
+        setContent { AccountsSection(none + (AccountKind.TWITCH to AccountStatus.NeedsReconnect("fgchamburg"))) { _, _ -> } }
+
+        onNodeWithText("Access was lost. Reconnect to keep using fgchamburg.").assertIsDisplayed()
+        onNodeWithText("Reconnect").assertIsDisplayed()
+        onNodeWithText("Sign out").assertIsDisplayed()
+    }
 }
