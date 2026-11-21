@@ -2,6 +2,11 @@
 # CI calls the same targets, so local and CI behave the same.
 
 SHELL := bash
+ifeq ($(OS),Windows_NT)
+# Windows builds of make only use bash when given the .exe name (found on PATH via Git Bash);
+# otherwise they fall back to cmd.exe, which can't run these recipes.
+SHELL := bash.exe
+endif
 .DEFAULT_GOAL := help
 
 GRADLE := ./gradlew

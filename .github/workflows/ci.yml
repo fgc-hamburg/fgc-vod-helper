@@ -32,7 +32,9 @@ jobs:
 
       - name: Install make (Windows)
         if: runner.os == 'Windows'
-        run: command -v make || choco install make -y --no-progress
+        run: |
+          command -v make || choco install make -y --no-progress
+          make --version | head -1
 
       - name: Check
         run: make check
@@ -67,7 +69,9 @@ jobs:
 
       - name: Install make (Windows)
         if: runner.os == 'Windows'
-        run: command -v make || choco install make -y --no-progress
+        run: |
+          command -v make || choco install make -y --no-progress
+          make --version | head -1
 
       - name: Package
         run: make package
