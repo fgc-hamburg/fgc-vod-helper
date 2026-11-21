@@ -21,7 +21,7 @@
 
 ## Approach
 
-- **Pins live in one file**, `buildSrc/src/main/kotlin/de/fgchamburg/vodhelper/build/VideoToolPins.kt`: version, URL and SHA-256 per tool per platform. Downloads happen only at build time, never at runtime.
+- **Pins live in one file**, `buildSrc/src/main/kotlin/de/fgchamburg/vodhelper/buildlogic/VideoToolPins.kt`: version, URL and SHA-256 per tool per platform. Downloads happen only at build time, never at runtime.
   - **ffmpeg + ffprobe 8.1.2:** bytedeco `org.bytedeco:ffmpeg:8.1.2-1.5.14` platform jars from Maven Central (LGPL v3 build: `--enable-version3`, no `--enable-gpl`). The jar contains the `ffmpeg`/`ffprobe` programs plus their shared libraries; on macOS they load libs via `@loader_path`, so copying them into one folder is self-contained. The `libjni*`/`jni*` files are JavaCPP bindings and are skipped.
   - **yt-dlp 2026.10.26:** GitHub release assets `yt-dlp_macos` (universal) and `yt-dlp.exe`. Unlicense.
   - **VLC engine 3.0.24:** from `download.videolan.org`: `vlc-3.0.24-arm64.dmg`, `vlc-3.0.24-intel64.dmg`, `vlc-3.0.24-win64.zip`. Only `libvlc`, `libvlccore` and `plugins/` are copied. LGPL 2.1+ (some plugins GPL 2+).
@@ -44,7 +44,7 @@
 
 ### Task 1: Pin, download and bundle the tools (build only)
 
-Files: `buildSrc/build.gradle.kts`, `buildSrc/settings.gradle.kts`, `buildSrc/src/main/kotlin/de/fgchamburg/vodhelper/build/ToolPlatform.kt`, `.../build/VideoToolPins.kt`, `.../build/PrepareVideoTools.kt`, `buildSrc/src/test/kotlin/de/fgchamburg/vodhelper/build/ToolPlatformTest.kt`, `.../build/Sha256Test.kt`, `app/build.gradle.kts`, `THIRD_PARTY_NOTICES.md`.
+Files: `buildSrc/build.gradle.kts`, `buildSrc/settings.gradle.kts`, `buildSrc/src/main/kotlin/de/fgchamburg/vodhelper/buildlogic/ToolPlatform.kt`, `.../build/VideoToolPins.kt`, `.../build/PrepareVideoTools.kt`, `buildSrc/src/test/kotlin/de/fgchamburg/vodhelper/buildlogic/ToolPlatformTest.kt`, `.../build/Sha256Test.kt`, `app/build.gradle.kts`, `THIRD_PARTY_NOTICES.md`.
 
 `buildSrc/build.gradle.kts`:
 ```kotlin
@@ -57,7 +57,7 @@ tasks.test { useJUnitPlatform() }
 
 `ToolPlatform.kt`:
 ```kotlin
-package de.fgchamburg.vodhelper.build
+package de.fgchamburg.vodhelper.buildlogic
 
 /** The OS + CPU a set of bundled tools is for. [resourceDir] is the Compose appResources subfolder name. */
 enum class ToolPlatform(val resourceDir: String, val bytedecoClassifier: String, val isWindows: Boolean) {
@@ -83,7 +83,7 @@ enum class ToolPlatform(val resourceDir: String, val bytedecoClassifier: String,
 
 `VideoToolPins.kt` (exact values):
 ```kotlin
-package de.fgchamburg.vodhelper.build
+package de.fgchamburg.vodhelper.buildlogic
 
 data class PinnedDownload(val url: String, val sha256: String) {
     val fileName: String get() = url.substringAfterLast('/')
@@ -138,9 +138,9 @@ object VideoToolPins {
 
 `app/build.gradle.kts` additions:
 ```kotlin
-import de.fgchamburg.vodhelper.build.PrepareVideoTools
-import de.fgchamburg.vodhelper.build.ToolPlatform
-import de.fgchamburg.vodhelper.build.VideoToolPins
+import de.fgchamburg.vodhelper.buildlogic.PrepareVideoTools
+import de.fgchamburg.vodhelper.buildlogic.ToolPlatform
+import de.fgchamburg.vodhelper.buildlogic.VideoToolPins
 
 // Tools for the machine building the app (CI builds each OS on its own runner). null on Linux: nothing bundled.
 val toolPlatform: ToolPlatform? = ToolPlatform.host(System.getProperty("os.name"), System.getProperty("os.arch"))
@@ -309,7 +309,7 @@ Files: `scripts/verify-package.sh`, `Makefile`, `.github/workflows/ci.yml`, `.gi
 - `Makefile`: add `verify-package` to `.PHONY` and a target `verify-package: ## Check the packaged app finds and runs its bundled video tools (after make package)` → `@bash scripts/verify-package.sh`.
 - `ci.yml` `package` job and `release.yml` `package` job: new step `- name: Check bundled video tools` / `run: make verify-package` right after the package step.
 - `README.md`: a short "Bundled video tools" section: which tools and versions, that the build downloads them once (cached in the Gradle user home) and checks their checksums, where the pins live (`buildSrc/.../VideoToolPins.kt`), how to bump one (version + URL + sha256, update `THIRD_PARTY_NOTICES.md`, run `make check` and `make package && make verify-package`), and that installers bundle tools for the building machine's OS and CPU.
-- `CLAUDE.md`: under "Code layout" add one bullet: "Bundled video tools (ffmpeg, ffprobe, yt-dlp, VLC engine): pinned in `buildSrc/src/main/kotlin/de/fgchamburg/vodhelper/build/VideoToolPins.kt`, unpacked by `:app:prepareVideoTools`, licenses in `THIRD_PARTY_NOTICES.md`. Code finds them through `VideoToolsLayout`; steps call `VideoToolsReport.require(tool)` before using one." Add `make verify-package` to the Build and test table.
+- `CLAUDE.md`: under "Code layout" add one bullet: "Bundled video tools (ffmpeg, ffprobe, yt-dlp, VLC engine): pinned in `buildSrc/src/main/kotlin/de/fgchamburg/vodhelper/buildlogic/VideoToolPins.kt`, unpacked by `:app:prepareVideoTools`, licenses in `THIRD_PARTY_NOTICES.md`. Code finds them through `VideoToolsLayout`; steps call `VideoToolsReport.require(tool)` before using one." Add `make verify-package` to the Build and test table.
 
 Steps:
 - [ ] Implement script, target, workflow steps, docs.
@@ -325,3 +325,8 @@ Steps:
 - Shrinking the bundle by dropping unneeded VLC plugins (~93 MB of plugins). Possible follow-up.
 - Intel Mac installers: releases build on `macos-latest` (Apple Silicon), so the Mac installer is arm64-only, as it already was for the bundled Java runtime. A `macos-13` (Intel) runner could be added later.
 - Code signing / notarization. With unsigned installers, a manual check on a fresh Mac, downloading the release `.dmg` from GitHub, is needed to confirm macOS lets the bundled tools run (quarantine).
+
+## Plan updates
+
+- buildSrc package is `de.fgchamburg.vodhelper.buildlogic`, not `...build`: a folder named `build` is caught by the `build/` ignore rule, which silently left the sources untracked.
+- Downloads use connect/read timeouts (30 s / 60 s) so a stalled server fails the build instead of hanging CI.
