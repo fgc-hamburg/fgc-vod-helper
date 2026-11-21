@@ -13,6 +13,7 @@ import androidx.compose.ui.window.rememberWindowState
 import de.fgchamburg.vodhelper.core.AppInfo
 import de.fgchamburg.vodhelper.core.accounts.Accounts
 import de.fgchamburg.vodhelper.core.accounts.KeyringSecretStore
+import de.fgchamburg.vodhelper.core.project.FileProjectStore
 import de.fgchamburg.vodhelper.core.settings.AppDataDir
 import de.fgchamburg.vodhelper.core.settings.FileSettingsStore
 import de.fgchamburg.vodhelper.core.tools.VideoToolsChecker
@@ -31,6 +32,7 @@ fun main(args: Array<String>) {
     val info = AppInfo.fromBuildConfig()
     val accounts = Accounts.create(info, KeyringSecretStore())
     val settings = FileSettingsStore(AppDataDir.current())
+    val projects = FileProjectStore()
     application {
         var tools by remember { mutableStateOf<VideoToolsReport?>(null) }
         LaunchedEffect(Unit) { tools = withContext(Dispatchers.IO) { checkTools() } }
@@ -39,7 +41,7 @@ fun main(args: Array<String>) {
             title = "${info.name} ${info.version}",
             state = rememberWindowState(size = DpSize(1100.dp, 720.dp)),
         ) {
-            AppRoot(info, tools, accounts, settings)
+            AppRoot(info, tools, accounts, settings, projects, SystemFolderPicker)
         }
     }
 }

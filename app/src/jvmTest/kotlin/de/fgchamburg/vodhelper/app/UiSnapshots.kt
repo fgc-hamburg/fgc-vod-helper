@@ -15,6 +15,11 @@ import de.fgchamburg.vodhelper.core.AppInfo
 import de.fgchamburg.vodhelper.core.accounts.AccountAction
 import de.fgchamburg.vodhelper.core.accounts.AccountKind
 import de.fgchamburg.vodhelper.core.accounts.AccountStatus
+import de.fgchamburg.vodhelper.core.project.LoadResult
+import de.fgchamburg.vodhelper.core.project.Project
+import de.fgchamburg.vodhelper.core.project.ProjectMessages
+import de.fgchamburg.vodhelper.core.project.SaveState
+import de.fgchamburg.vodhelper.core.settings.RecentProject
 import de.fgchamburg.vodhelper.core.tools.HostOs
 import de.fgchamburg.vodhelper.core.tools.ToolStatus
 import de.fgchamburg.vodhelper.core.tools.VideoTool
@@ -65,13 +70,42 @@ class UiSnapshots {
         outDir.mkdirs()
         val noAction: (AccountKind, AccountAction) -> Unit = { _, _ -> }
 
-        snapshot(outDir, "01-setup-first-launch.png") { SetupScreen(none, noAction, {}) }
-        snapshot(outDir, "02-setup-ready.png") { SetupScreen(ready, noAction, {}) }
-        snapshot(outDir, "03-connect-dialog.png") {
+        val none2: () -> Unit = {}
+        val recent = listOf(
+            RecentProject("/Users/fgc/Videos/FGC/Hamburg Weekly #12", "Hamburg Weekly #12"),
+            RecentProject("/Users/fgc/Videos/FGC/Hamburg Weekly #11", "Hamburg Weekly #11"),
+        )
+        val project = Project(name = "Hamburg Weekly #13")
+        val projectFolder = "/Users/fgc/Videos/FGC/Hamburg Weekly #13"
+
+        snapshot(outDir, "01-home-recent-projects.png") {
+            HomeScreen(info, ready, recent, none2, {}, {}, none2, notice = null)
+        }
+        snapshot(outDir, "02-new-project.png") {
+            NewProjectScreen("Hamburg Weekly #13", "/Users/fgc/Videos/FGC", null, {}, none2, none2, none2)
+        }
+        snapshot(outDir, "03-project.png") { ProjectScreen(project, projectFolder, SaveState.Saved, {}, none2) }
+        snapshot(outDir, "04-project-save-failed.png") {
+            ProjectScreen(project, projectFolder, SaveState.Failed("The disk is full"), {}, none2)
+        }
+        snapshot(outDir, "05-home-cannot-open.png") {
+            HomeScreen(
+                info, ready, recent, none2, {}, {}, none2,
+                notice = ProjectMessages.cannotOpen("Hamburg Weekly #12", LoadResult.Missing),
+            )
+        }
+        snapshot(outDir, "06-setup-first-launch.png") { SetupScreen(none, noAction, {}) }
+        snapshot(outDir, "07-setup-ready.png") { SetupScreen(ready, noAction, {}) }
+        snapshot(outDir, "08-connect-dialog.png") {
             SetupScreen(none, noAction, {})
             ConnectDialog(AccountKind.TWITCH) {}
         }
-        snapshot(outDir, "04-home-missing-account.png") { HomeScreen(info, missingStartgg, {}, {}, notice = null) }
-        snapshot(outDir, "05-settings.png") { SettingsScreen(info, all, realOrFakeReport(), noAction, {}) }
+        snapshot(outDir, "09-home-missing-account.png") {
+            HomeScreen(info, missingStartgg, emptyList(), none2, {}, {}, none2, notice = null)
+        }
+        snapshot(outDir, "10-settings.png") { SettingsScreen(info, all, realOrFakeReport(), noAction, {}) }
+        snapshot(outDir, "11-home-no-projects.png") {
+            HomeScreen(info, ready, emptyList(), none2, {}, {}, none2, notice = null)
+        }
     }
 }
