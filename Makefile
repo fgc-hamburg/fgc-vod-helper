@@ -7,6 +7,8 @@ SHELL := bash
 GRADLE := ./gradlew
 DIST := dist
 APP := fgc-vod-helper
+# Default release version: the one in gradle.properties. Override with VERSION=x.y.z.
+VERSION ?= $(shell sed -n 's/^app.version=//p' gradle.properties)
 
 # Local keys from .env (created by `make setup`) are passed to Gradle as
 # environment variables. In CI they come from GitHub Actions secrets instead.
@@ -36,28 +38,27 @@ setup: ## Create .env from .env.example (keeps existing values, adds missing key
 run: ## Run the app locally
 	$(GRADLE) run
 
-# TODO(FGC-1): remove the "no Gradle project yet" guard once gradlew exists.
 check: ## Compile, test and lint — what CI runs, must pass before a PR
-	@if [ ! -f $(GRADLE) ]; then echo "No Gradle project yet (added by FGC-1); skipping."; \
-	else $(GRADLE) check --stacktrace; fi
+	$(GRADLE) check --stacktrace
 
 test: ## Run unit tests only
-	$(GRADLE) allTests
+	$(GRADLE) test
 
 build: ## Compile the app without packaging
 	$(GRADLE) assemble
 
 clean: ## Remove build outputs and dist/
-	@if [ -f $(GRADLE) ]; then $(GRADLE) clean; fi
+	$(GRADLE) clean
 	rm -rf $(DIST)
 
 # --- Package and release ---------------------------------------------------
 
-package: ## Build this OS's installer into dist/ — make package VERSION=1.2.3
-	@test -n "$(VERSION)" || { echo "Set VERSION, e.g. make package VERSION=1.0.0"; exit 1; }
+package: ## Build this OS's installer into a fresh dist/ — make package [VERSION=1.2.3] (default: app.version in gradle.properties)
+	@test -n "$(VERSION)" || { echo "No VERSION given and no app.version in gradle.properties"; exit 1; }
+	rm -rf $(DIST)
 	$(GRADLE) packageDistributionForCurrentOS -Papp.version=$(VERSION)
 	@mkdir -p $(DIST)
-	@find . -path '*/build/compose/binaries/*' \( -name '*.dmg' -o -name '*.msi' \) -print0 | \
+	@find . -path '*/build/compose/binaries/*' \( -name '*-$(VERSION).dmg' -o -name '*-$(VERSION).msi' \) -print0 | \
 		while IFS= read -r -d '' f; do cp "$$f" "$(DIST)/$(APP)-$(VERSION).$${f##*.}"; done
 	@ls -1 $(DIST)
 
