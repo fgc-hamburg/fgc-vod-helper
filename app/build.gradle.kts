@@ -44,16 +44,39 @@ val prepareVideoTools by tasks.registering(PrepareVideoTools::class) {
 
 tasks.matching { it.name == "prepareAppResources" }.configureEach { dependsOn(prepareVideoTools) }
 
-tasks.named<Test>("jvmTest") {
-    dependsOn(prepareVideoTools)
-    providers.gradleProperty("ui.snapshots.dir").orNull?.let { systemProperty("ui.snapshots.dir", it) }
-    toolPlatform?.let { p ->
-        systemProperty("videotools.dir", videoToolsDir.get().dir(p.resourceDir).asFile.absolutePath)
-        systemProperty("videotools.version.ffmpeg", VideoToolPins.FFMPEG_VERSION)
-        systemProperty("videotools.version.yt-dlp", VideoToolPins.YT_DLP_VERSION)
-        systemProperty("videotools.version.vlc", VideoToolPins.VLC_VERSION)
+// Unit tests stay offline. `make ui-snapshots` passes -Pui.snapshots.dir and gets the real tools to render.
+val snapshotsDir: String? = providers.gradleProperty("ui.snapshots.dir").orNull
+val videoToolsProps: Map<String, String> = toolPlatform?.let { p ->
+    mapOf(
+        "videotools.dir" to videoToolsDir.get().dir(p.resourceDir).asFile.absolutePath,
+        "videotools.version.ffmpeg" to VideoToolPins.FFMPEG_VERSION,
+        "videotools.version.yt-dlp" to VideoToolPins.YT_DLP_VERSION,
+        "videotools.version.vlc" to VideoToolPins.VLC_VERSION,
+    )
+} ?: emptyMap()
+
+val jvmTestTask = tasks.named<Test>("jvmTest") {
+    filter { excludeTestsMatching("*BundledVideoToolsTest") }
+    if (snapshotsDir != null) {
+        dependsOn(prepareVideoTools)
+        systemProperty("ui.snapshots.dir", snapshotsDir)
+        videoToolsProps["videotools.dir"]?.let { systemProperty("videotools.dir", it) }
     }
 }
+
+val bundledToolsTest by tasks.registering(Test::class) {
+    group = "verification"
+    description = "Runs the bundled video tools from the build output (downloads them once)."
+    val jvmTest = jvmTestTask.get()
+    testClassesDirs = jvmTest.testClassesDirs
+    classpath = jvmTest.classpath
+    useJUnit()
+    filter { includeTestsMatching("*BundledVideoToolsTest") }
+    dependsOn(prepareVideoTools)
+    videoToolsProps.forEach { (k, v) -> systemProperty(k, v) }
+}
+
+tasks.named("check") { dependsOn(bundledToolsTest) }
 
 compose.desktop {
     application {

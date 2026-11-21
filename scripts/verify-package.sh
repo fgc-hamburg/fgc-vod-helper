@@ -18,4 +18,12 @@ if [ ! -f "$launcher" ]; then
 fi
 
 echo "Running packaged app: $launcher --check-tools"
-exec "$launcher" --check-tools
+# The Windows launcher is a GUI exe with no stdout, so the app also writes its summary to a file.
+report="$(mktemp)"
+set +e
+"$launcher" --check-tools --check-tools-report="$report"
+code=$?
+set -e
+[ -f "$report" ] && cat "$report"
+rm -f "$report"
+exit "$code"

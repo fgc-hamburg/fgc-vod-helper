@@ -24,7 +24,7 @@ class SystemProcessRunner : ProcessRunner {
         val finished = process.waitFor(timeout.inWholeMilliseconds, TimeUnit.MILLISECONDS)
         if (!finished) {
             process.destroyForcibly()
-            process.waitFor()
+            process.waitFor(5, TimeUnit.SECONDS)
         }
         reader.join(2_000)
         val text = synchronized(output) { output.toString() }

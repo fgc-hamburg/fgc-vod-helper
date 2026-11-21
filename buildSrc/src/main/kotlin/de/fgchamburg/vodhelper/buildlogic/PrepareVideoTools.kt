@@ -16,6 +16,7 @@ import org.gradle.api.tasks.TaskAction
 import org.gradle.process.ExecOperations
 import java.io.File
 import java.net.URI
+import java.nio.file.AtomicMoveNotSupportedException
 import java.nio.file.Files
 import java.nio.file.StandardCopyOption
 import java.security.MessageDigest
@@ -87,19 +88,25 @@ abstract class PrepareVideoTools : DefaultTask() {
         val target = File(cache, pin.fileName)
         if (target.exists() && sha256Hex(target) == pin.sha256) return target
         logger.lifecycle("Downloading ${pin.url}")
-        val part = File(cache, pin.fileName + ".part")
+        // A unique temp file, so concurrent builds never write the same file.
+        val part = File.createTempFile(pin.fileName + ".", ".part", cache)
         try {
             val connection = URI(pin.url).toURL().openConnection().apply {
                 connectTimeout = 30_000
                 readTimeout = 60_000
             }
             connection.getInputStream().use { input -> part.outputStream().use { input.copyTo(it) } }
+            verifySha256(part, pin.sha256) // deletes the temp file on mismatch
+            try {
+                Files.move(part.toPath(), target.toPath(), StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE)
+            } catch (e: AtomicMoveNotSupportedException) {
+                Files.move(part.toPath(), target.toPath(), StandardCopyOption.REPLACE_EXISTING)
+            }
         } catch (e: java.io.IOException) {
-            part.delete()
             throw GradleException("Couldn't download ${pin.url}: ${e.message}", e)
+        } finally {
+            part.delete()
         }
-        Files.move(part.toPath(), target.toPath(), StandardCopyOption.REPLACE_EXISTING)
-        verifySha256(target, pin.sha256)
         return target
     }
 
@@ -129,10 +136,7 @@ abstract class PrepareVideoTools : DefaultTask() {
         val base = dir.canonicalFile
         ZipFile(zipFile).use { zip ->
             for (entry in zip.entries().asSequence().filter { !it.isDirectory }) {
-                val file = File(base, entry.name).canonicalFile
-                if (!file.path.startsWith(base.path + File.separator)) {
-                    throw GradleException("Refusing zip entry outside the target folder: ${entry.name}")
-                }
+                val file = safeTarget(base, entry.name)
                 file.parentFile.mkdirs()
                 zip.getInputStream(entry).use { input -> file.outputStream().use { input.copyTo(it) } }
             }
@@ -140,15 +144,25 @@ abstract class PrepareVideoTools : DefaultTask() {
         if (!p.isWindows) File(base, "yt-dlp_macos").setExecutable(true, false)
     }
 
+    /** [relativePath] resolved inside [base] (which must be canonical); throws if it would escape (zip-slip). */
+    private fun safeTarget(base: File, relativePath: String): File {
+        val file = File(base, relativePath).canonicalFile
+        if (!file.path.startsWith(base.path + File.separator)) {
+            throw GradleException("Refusing zip entry outside the target folder: $relativePath")
+        }
+        return file
+    }
+
     private fun unpackVlcWindows(zipFile: File, dir: File) {
         dir.mkdirs()
+        val base = dir.canonicalFile
         val root = "vlc-${VideoToolPins.VLC_VERSION}/"
         ZipFile(zipFile).use { zip ->
             for (entry in zip.entries().asSequence().filter { !it.isDirectory && it.name.startsWith(root) }) {
                 val rest = entry.name.removePrefix(root)
                 val wanted = rest == "libvlc.dll" || rest == "libvlccore.dll" || rest == "COPYING.txt" || rest.startsWith("plugins/")
                 if (!wanted) continue
-                val file = File(dir, rest)
+                val file = safeTarget(base, rest)
                 file.parentFile.mkdirs()
                 zip.getInputStream(entry).use { input -> file.outputStream().use { input.copyTo(it) } }
             }
@@ -157,6 +171,13 @@ abstract class PrepareVideoTools : DefaultTask() {
 
     private fun unpackVlcMac(dmg: File, dir: File) {
         val mount = File(temporaryDir, "vlc-mount").also { it.mkdirs() }
+        // A mount left behind by an interrupted build would make attach fail.
+        exec.exec {
+            commandLine("hdiutil", "detach", mount.absolutePath, "-force")
+            isIgnoreExitValue = true
+            standardOutput = java.io.OutputStream.nullOutputStream()
+            errorOutput = java.io.OutputStream.nullOutputStream()
+        }
         exec.exec { commandLine("hdiutil", "attach", "-nobrowse", "-readonly", "-noautoopen", "-mountpoint", mount.absolutePath, dmg.absolutePath) }
         try {
             val macos = File(mount, "VLC.app/Contents/MacOS")

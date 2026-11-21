@@ -22,7 +22,7 @@ private fun checkTools(): VideoToolsReport = VideoToolsChecker(VideoToolsLayout.
 
 fun main(args: Array<String>) {
     // Handled before any Compose/AWT call so it works without a display.
-    if (CHECK_TOOLS_FLAG in args) exitProcess(runCheckTools(checkTools(), ::println))
+    if (CHECK_TOOLS_FLAG in args) exitProcess(runCheckTools(checkTools(), checkToolsReportPath(args), ::println))
 
     val info = AppInfo.fromBuildConfig()
     application {

@@ -18,7 +18,7 @@ class CheckToolsCommandTest {
     @Test
     fun `all ready exits 0 and prints each tool`() {
         val lines = mutableListOf<String>()
-        val code = runCheckTools(VideoToolsReport(ready), lines::add)
+        val code = runCheckTools(VideoToolsReport(ready), out = lines::add)
 
         assertEquals(0, code)
         assertEquals(
@@ -32,10 +32,34 @@ class CheckToolsCommandTest {
         val lines = mutableListOf<String>()
         val code = runCheckTools(
             VideoToolsReport(ready + (VideoTool.YT_DLP to ToolStatus.Missing("/x"))),
-            lines::add,
+            out = lines::add,
         )
 
         assertEquals(1, code)
         assertTrue(lines.any { it.startsWith("yt-dlp: Missing") })
+    }
+
+    @Test
+    fun `report path is read from the argument`() {
+        assertEquals(null, checkToolsReportPath(arrayOf("--check-tools")))
+        assertEquals(
+            java.io.File("/tmp/r.txt"),
+            checkToolsReportPath(arrayOf("--check-tools", "--check-tools-report=/tmp/r.txt")),
+        )
+        assertEquals(null, checkToolsReportPath(arrayOf("--check-tools-report=")))
+    }
+
+    @Test
+    fun `summary lines are also written to the report file`() {
+        val file = java.io.File.createTempFile("check-tools", ".txt")
+        try {
+            runCheckTools(VideoToolsReport(ready), file) {}
+            assertEquals(
+                "ffmpeg: 8.1.2\nffprobe: 8.1.2\nyt-dlp: 2026.10.26\nVLC engine: 3.0.24\n",
+                file.readText(Charsets.UTF_8),
+            )
+        } finally {
+            file.delete()
+        }
     }
 }
