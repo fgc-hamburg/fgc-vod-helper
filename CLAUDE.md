@@ -40,6 +40,7 @@ Every PR needs a good description built from its ticket (template: `.github/pull
 
 | Action | Command |
 |---|---|
+| Create your local `.env` for keys (first time, or after new keys are added) | `make setup` |
 | Run the app | `make run` |
 | Compile, test, lint (what CI runs; must pass before a PR) | `make check` |
 | Unit tests only | `make test` |
@@ -49,7 +50,7 @@ Every PR needs a good description built from its ticket (template: `.github/pull
 | Upload PR screenshots/GIFs | `make pr-media TICKET=FGC-1` |
 
 - Versions are `x.y.z` with `x` ≥ 1 (macOS installers require it). The Gradle build reads the version from `-Papp.version`.
-- Build-time secrets come from Gradle properties or environment: `TWITCH_CLIENT_ID`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`. Never commit them. The build and tests must work without them (features needing them show "not configured"). Release builds get them from GitHub Actions secrets.
+- Build-time keys: `TWITCH_CLIENT_ID`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`. Locally they live in `.env` (git-ignored, created by `make setup` from `.env.example`); the Makefile exports them to every command, so Gradle reads them from the environment. Never commit them. When you add a key, add it to `.env.example` with a comment on where to get it. The build and tests must work without them (features needing them show "not configured"). Release builds get them from GitHub Actions secrets.
 - `main` is protected: changes land only through a PR with green CI.
 
 ## Code rules

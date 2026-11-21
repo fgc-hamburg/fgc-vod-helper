@@ -7,3 +7,6 @@ local.properties
 .DS_Store
 .worktrees/
 media/
+.env
+.env.*
+!.env.example

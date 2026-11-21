@@ -8,12 +8,30 @@ GRADLE := ./gradlew
 DIST := dist
 APP := fgc-vod-helper
 
-.PHONY: help run check test build package clean version release worktree screenshot record pr-media
+# Local keys from .env (created by `make setup`) are passed to Gradle as
+# environment variables. In CI they come from GitHub Actions secrets instead.
+ifneq (,$(wildcard .env))
+include .env
+export $(shell sed -n 's/^\([A-Za-z_][A-Za-z0-9_]*\)=.*/\1/p' .env)
+endif
+
+.PHONY: help setup run check test build package clean version release worktree screenshot record pr-media
 
 help: ## List targets
 	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "} {printf "  \033[36m%-11s\033[0m %s\n", $$1, $$2}'
 
 # --- Develop ---------------------------------------------------------------
+
+setup: ## Create .env from .env.example (keeps existing values, adds missing keys)
+	@if [ ! -f .env ]; then cp .env.example .env; echo "Created .env — fill in the keys (see comments inside)."; \
+	else added=0; \
+		for key in $$(sed -n 's/^\([A-Za-z_][A-Za-z0-9_]*\)=.*/\1/p' .env.example); do \
+			grep -q "^$$key=" .env || { echo "$$key=" >> .env; echo "Added $$key to .env"; added=1; }; \
+		done; \
+		[ $$added = 1 ] || echo ".env is up to date."; \
+	fi
+	@missing=$$(sed -n 's/^\([A-Za-z_][A-Za-z0-9_]*\)=$$/\1/p' .env | tr '\n' ' '); \
+		[ -z "$$missing" ] || echo "Still empty: $$missing"
 
 run: ## Run the app locally
 	$(GRADLE) run
