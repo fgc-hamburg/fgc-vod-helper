@@ -46,6 +46,7 @@ tasks.matching { it.name == "prepareAppResources" }.configureEach { dependsOn(pr
 
 tasks.named<Test>("jvmTest") {
     dependsOn(prepareVideoTools)
+    providers.gradleProperty("ui.snapshots.dir").orNull?.let { systemProperty("ui.snapshots.dir", it) }
     toolPlatform?.let { p ->
         systemProperty("videotools.dir", videoToolsDir.get().dir(p.resourceDir).asFile.absolutePath)
         systemProperty("videotools.version.ffmpeg", VideoToolPins.FFMPEG_VERSION)

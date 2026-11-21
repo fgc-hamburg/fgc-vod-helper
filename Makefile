@@ -31,7 +31,7 @@ include .env
 export $(shell sed -n 's/^\([A-Za-z_][A-Za-z0-9_]*\)=.*/\1/p' .env)
 endif
 
-.PHONY: help setup run check test build package clean version release worktree screenshot record pr-media
+.PHONY: help setup run check test build package clean version release worktree screenshot record ui-snapshots pr-media
 
 help: ## List targets
 	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "} {printf "  \033[36m%-11s\033[0m %s\n", $$1, $$2}'
@@ -108,6 +108,11 @@ record: ## Record the screen and save a GIF into media/<TICKET>/ (macOS) — mak
 		-vf "fps=12,scale=960:-1:flags=lanczos,split[a][b];[a]palettegen[p];[b][p]paletteuse" media/$(TICKET)/$(NAME).gif
 	@rm -f media/$(TICKET)/.$(NAME).mov
 	@echo "Saved media/$(TICKET)/$(NAME).gif"
+
+ui-snapshots: ## Render the app's screens to PNGs in media/<TICKET>/ for PR descriptions — make ui-snapshots TICKET=FGC-2
+	@test -n "$(TICKET)" || { echo "Set TICKET"; exit 1; }
+	@mkdir -p media/$(TICKET)
+	$(GRADLE) :app:jvmTest --tests '*UiSnapshots*' --rerun -Pui.snapshots.dir=$(CURDIR)/media/$(TICKET)
 
 pr-media: ## Upload media/<TICKET>/ to the pr-media branch and print Markdown links — make pr-media TICKET=FGC-1
 	@test -n "$(TICKET)" || { echo "Set TICKET"; exit 1; }
