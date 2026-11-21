@@ -13,9 +13,12 @@ import androidx.compose.ui.window.rememberWindowState
 import de.fgchamburg.vodhelper.core.AppInfo
 import de.fgchamburg.vodhelper.core.accounts.Accounts
 import de.fgchamburg.vodhelper.core.accounts.KeyringSecretStore
+import de.fgchamburg.vodhelper.core.SystemClock
+import de.fgchamburg.vodhelper.core.http.JdkHttpClient
 import de.fgchamburg.vodhelper.core.project.FileProjectStore
 import de.fgchamburg.vodhelper.core.settings.AppDataDir
 import de.fgchamburg.vodhelper.core.settings.FileSettingsStore
+import de.fgchamburg.vodhelper.core.twitch.TwitchAuth
 import de.fgchamburg.vodhelper.core.tools.VideoToolsChecker
 import de.fgchamburg.vodhelper.core.tools.VideoToolsLayout
 import de.fgchamburg.vodhelper.core.tools.VideoToolsReport
@@ -30,7 +33,8 @@ fun main(args: Array<String>) {
     if (CHECK_TOOLS_FLAG in args) exitProcess(runCheckTools(checkTools(), checkToolsReportPath(args), ::println))
 
     val info = AppInfo.fromBuildConfig()
-    val accounts = Accounts.create(info, KeyringSecretStore())
+    val twitchAuth = if (info.twitchConfigured) TwitchAuth(info.twitchClientId, JdkHttpClient(), SystemClock) else null
+    val accounts = Accounts.create(info, KeyringSecretStore(), twitchAuth)
     val settings = FileSettingsStore(AppDataDir.current())
     val projects = FileProjectStore()
     val saves = SaveQueue()
@@ -47,7 +51,7 @@ fun main(args: Array<String>) {
             title = "${info.name} ${info.version}",
             state = rememberWindowState(size = DpSize(1100.dp, 720.dp)),
         ) {
-            AppRoot(info, tools, accounts, settings, projects, SystemFolderPicker, saves)
+            AppRoot(info, tools, accounts, settings, projects, SystemFolderPicker, saves, SystemBrowserOpener)
         }
     }
 }
