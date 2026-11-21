@@ -110,7 +110,7 @@ compose.desktop {
             vendor = "FGC Hamburg"
 
             // From :app:suggestRuntimeModules; without these the packaged app can crash on a missing JDK module.
-            modules("java.instrument", "jdk.unsupported")
+            modules("java.instrument", "jdk.security.auth", "jdk.unsupported")
 
             macOS {
                 bundleID = "de.fgchamburg.vodhelper"
