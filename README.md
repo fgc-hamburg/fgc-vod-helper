@@ -35,7 +35,7 @@ Put the Client ID in two places:
 - Your local `.env`: run `make setup`, then fill in `TWITCH_CLIENT_ID`.
 - Releases: add a GitHub Actions secret named `TWITCH_CLIENT_ID`.
 
-To sign in, the app shows a short code. It opens twitch.tv in your browser, where you type the code and approve the app. The app asks only for `user:read:broadcast`. That lets it read the channel's past broadcasts, and nothing more.
+To sign in, the app shows a short code. It opens twitch.tv in your browser, where you type the code and approve the app. The app asks only for `user:read:broadcast`, a read-only permission. Twitch requires at least one, and reading past broadcasts needs none, so this is the smallest one available.
 
 If the build has no Client ID, the Twitch row in Setup says "Not available in this build of the app". The rest of the app still works.
 
