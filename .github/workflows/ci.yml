@@ -35,6 +35,8 @@ jobs:
         run: |
           command -v make || choco install make -y --no-progress
           make --version | head -1
+          echo "make at: $(command -v make)"; echo "bash at: $(command -v bash) short: $(cygpath -ms "$(command -v bash)")"; echo "sh at: $(command -v sh)"
+          make -p -f Makefile help 2>/dev/null | grep -E "^SHELL|^MAKESHELL" || true
 
       - name: Check
         run: make check
