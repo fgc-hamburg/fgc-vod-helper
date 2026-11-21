@@ -3,6 +3,7 @@
 // code that needs the JVM (files, processes) in jvmMain.
 plugins {
     alias(libs.plugins.kotlin.multiplatform)
+    alias(libs.plugins.kotlin.serialization)
 }
 
 kotlin {
@@ -10,6 +11,9 @@ kotlin {
     jvm()
 
     sourceSets {
+        commonMain.dependencies {
+            implementation(libs.kotlinx.serialization.json)
+        }
         jvmMain.dependencies {
             implementation(libs.jna)
         }
