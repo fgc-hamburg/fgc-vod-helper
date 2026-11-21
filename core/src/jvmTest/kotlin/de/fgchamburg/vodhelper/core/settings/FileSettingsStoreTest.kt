@@ -37,6 +37,14 @@ class FileSettingsStoreTest {
     }
 
     @Test
+    fun `saves and loads recent projects`() {
+        val store = FileSettingsStore(tempDir())
+        val settings = AppSettings(true, listOf(RecentProject("/a/Weekly", "Weekly")), "/a")
+        store.save(settings)
+        assertEquals(settings, FileSettingsStore(store.file.parent).load())
+    }
+
+    @Test
     fun `settings file holds no sign-in details`() {
         val store = FileSettingsStore(tempDir())
         store.save(AppSettings(setupDone = true))
