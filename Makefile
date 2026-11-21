@@ -1,12 +1,28 @@
 # Every action in this repo goes through here. Run `make` to list targets.
 # CI calls the same targets, so local and CI behave the same.
 
+ifeq ($(OS),Windows_NT)
+# Windows builds of make only accept a full path for SHELL (anything else falls back to cmd.exe).
+# Until SHELL is set they use Git Bash's sh.exe, which we use to find bash's short (space-free) path.
+SHELL := $(shell cygpath -ms "$$(command -v bash)")
+else
 SHELL := bash
+endif
 .DEFAULT_GOAL := help
 
 GRADLE := ./gradlew
+ifeq ($(OS),Windows_NT)
+# Windows make runs simple command lines without the shell, and Windows can't start the
+# gradlew script directly (it hands it to cmd.exe, which fails). Run it through bash instead.
+GRADLE := bash ./gradlew
+endif
 DIST := dist
 APP := fgc-vod-helper
+# Version for package/release: app.version in gradle.properties, unless given on the
+# command line (make package VERSION=x.y.z). A VERSION environment variable is ignored.
+APP_VERSION := $(shell sed -n 's/^app\.version[[:space:]]*=//p' gradle.properties | tr -d '[:space:]')
+override VERSION := $(if $(filter command line,$(origin VERSION)),$(VERSION),$(APP_VERSION))
+BINARIES := app/build/compose/binaries/main
 
 # Local keys from .env (created by `make setup`) are passed to Gradle as
 # environment variables. In CI they come from GitHub Actions secrets instead.
@@ -36,35 +52,35 @@ setup: ## Create .env from .env.example (keeps existing values, adds missing key
 run: ## Run the app locally
 	$(GRADLE) run
 
-# TODO(FGC-1): remove the "no Gradle project yet" guard once gradlew exists.
 check: ## Compile, test and lint — what CI runs, must pass before a PR
-	@if [ ! -f $(GRADLE) ]; then echo "No Gradle project yet (added by FGC-1); skipping."; \
-	else $(GRADLE) check --stacktrace; fi
+	$(GRADLE) check --stacktrace
 
-test: ## Run unit tests only
+test: ## Run unit tests only (all modules)
 	$(GRADLE) allTests
 
 build: ## Compile the app without packaging
 	$(GRADLE) assemble
 
 clean: ## Remove build outputs and dist/
-	@if [ -f $(GRADLE) ]; then $(GRADLE) clean; fi
+	$(GRADLE) clean
 	rm -rf $(DIST)
 
 # --- Package and release ---------------------------------------------------
 
-package: ## Build this OS's installer into dist/ — make package VERSION=1.2.3
-	@test -n "$(VERSION)" || { echo "Set VERSION, e.g. make package VERSION=1.0.0"; exit 1; }
+package: ## Build this OS's installer into a fresh dist/ — make package [VERSION=1.2.3] (default: app.version in gradle.properties)
+	@test -n "$(VERSION)" || { echo "No VERSION given and no app.version in gradle.properties"; exit 1; }
+	rm -rf $(DIST) $(BINARIES)
 	$(GRADLE) packageDistributionForCurrentOS -Papp.version=$(VERSION)
 	@mkdir -p $(DIST)
-	@find . -path '*/build/compose/binaries/*' \( -name '*.dmg' -o -name '*.msi' \) -print0 | \
-		while IFS= read -r -d '' f; do cp "$$f" "$(DIST)/$(APP)-$(VERSION).$${f##*.}"; done
+	@n=0; while IFS= read -r -d '' f; do cp "$$f" "$(DIST)/$(APP)-$(VERSION).$${f##*.}"; n=$$((n+1)); done < \
+		<(find $(BINARIES) \( -name '*-$(VERSION).dmg' -o -name '*-$(VERSION).msi' \) -print0); \
+		[ $$n -eq 1 ] || { echo "Expected 1 installer in $(BINARIES), found $$n"; exit 1; }
 	@ls -1 $(DIST)
 
 version: ## Print the latest release tag
 	@git describe --tags --abbrev=0 --match 'v*' 2>/dev/null || echo "No release yet"
 
-release: ## Tag main and push it; CI builds installers and publishes the GitHub Release — make release VERSION=1.2.3
+release: ## Tag main and push it; CI builds installers and publishes the GitHub Release — make release [VERSION=1.2.3] (default: app.version)
 	@bash scripts/release.sh "$(VERSION)"
 
 # --- Ticket workflow -------------------------------------------------------

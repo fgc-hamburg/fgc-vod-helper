@@ -8,8 +8,10 @@ v="${1:-}"
 fail() { echo "release: $*" >&2; exit 1; }
 
 [ -n "$v" ] || fail "usage: make release VERSION=1.2.3"
-# macOS installers require the first number to be 1 or higher.
-[[ "$v" =~ ^[1-9][0-9]*\.[0-9]+\.[0-9]+$ ]] || fail "version must look like 1.2.3 (first number 1 or higher)"
+# Installer limits: macOS needs the first number >= 1; Windows needs x, y <= 255 and z <= 65535.
+[[ "$v" =~ ^([0-9]{1,5})\.([0-9]{1,5})\.([0-9]{1,5})$ ]] || fail "version must look like 1.2.3"
+(( 10#${BASH_REMATCH[1]} >= 1 && 10#${BASH_REMATCH[1]} <= 255 && 10#${BASH_REMATCH[2]} <= 255 && 10#${BASH_REMATCH[3]} <= 65535 )) \
+  || fail "version $v is outside installer limits: first number 1-255, second 0-255, third 0-65535"
 [ "$(git rev-parse --abbrev-ref HEAD)" = "main" ] || fail "switch to main first"
 [ -z "$(git status --porcelain --untracked-files=no)" ] || fail "commit or stash your changes first"
 
