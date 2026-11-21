@@ -11,7 +11,8 @@ class VideoToolsChecker(
     private val layout: VideoToolsLayout?,
     private val runner: ProcessRunner = SystemProcessRunner(),
     private val vlcProbe: VlcEngineProbe? = layout?.let { JnaVlcEngineProbe() },
-    private val timeout: Duration = 30.seconds,
+    // Generous: on macOS the first run of freshly installed files waits ~25 s for the system security check.
+    private val timeout: Duration = 120.seconds,
 ) {
     fun check(): VideoToolsReport {
         if (layout == null) return VideoToolsReport.allMissing("video tools folder not found")
