@@ -2,10 +2,12 @@
 kotlin = "2.4.21"
 compose = "1.12.2"
 jna = "5.19.1"
+java-keyring = "1.0.4"
 kotlinx-serialization = "1.13.0"
 
 [libraries]
 jna = { module = "net.java.dev.jna:jna", version.ref = "jna" }
+java-keyring = { module = "com.github.javakeyring:java-keyring", version.ref = "java-keyring" }
 kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "kotlinx-serialization" }
 
 [plugins]

@@ -16,6 +16,7 @@ kotlin {
         }
         jvmMain.dependencies {
             implementation(libs.jna)
+            implementation(libs.java.keyring)
         }
         commonTest.dependencies {
             implementation(kotlin("test"))
