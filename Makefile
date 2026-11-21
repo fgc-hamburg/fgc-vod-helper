@@ -1,11 +1,12 @@
 # Every action in this repo goes through here. Run `make` to list targets.
 # CI calls the same targets, so local and CI behave the same.
 
-SHELL := bash
 ifeq ($(OS),Windows_NT)
-# Windows builds of make only use bash when given the .exe name (found on PATH via Git Bash);
-# otherwise they fall back to cmd.exe, which can't run these recipes.
-SHELL := bash.exe
+# Windows builds of make only accept a full path for SHELL (anything else falls back to cmd.exe).
+# Until SHELL is set they use Git Bash's sh.exe, which we use to find bash's short (space-free) path.
+SHELL := $(shell cygpath -ms "$$(command -v bash)")
+else
+SHELL := bash
 endif
 .DEFAULT_GOAL := help
 
