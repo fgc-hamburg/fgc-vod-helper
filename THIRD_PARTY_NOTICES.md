@@ -19,10 +19,10 @@ FGC VOD Helper bundles the programs below, unchanged. Each keeps its own license
 ## yt-dlp 2026.10.26
 
 - License: The Unlicense (public domain).
-- The standalone program also contains Python and other components under their own licenses: https://github.com/yt-dlp/yt-dlp/blob/2026.10.26/THIRD_PARTY_LICENSES.txt
+- The folder build also contains Python and other components under their own licenses: https://github.com/yt-dlp/yt-dlp/blob/2026.10.26/THIRD_PARTY_LICENSES.txt
 - Source: https://github.com/yt-dlp/yt-dlp/tree/2026.10.26
 
-## JNA 5.19.1 (used to start VLC's engine)
+## JNA 5.19.1 (used to load VLC's engine library)
 
 - License: Apache 2.0 or LGPL v2.1 (dual).
 - Source: https://github.com/java-native-access/jna

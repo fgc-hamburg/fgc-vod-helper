@@ -15,7 +15,7 @@ class VideoToolsLayoutTest {
         val l = VideoToolsLayout(root, HostOs.MAC)
         assertEquals(root.resolve("ffmpeg/ffmpeg"), l.executable(VideoTool.FFMPEG))
         assertEquals(root.resolve("ffmpeg/ffprobe"), l.executable(VideoTool.FFPROBE))
-        assertEquals(root.resolve("yt-dlp/yt-dlp"), l.executable(VideoTool.YT_DLP))
+        assertEquals(root.resolve("yt-dlp/yt-dlp_macos"), l.executable(VideoTool.YT_DLP))
         assertEquals(root.resolve("vlc/lib"), l.vlcLibraryDir)
         assertEquals(root.resolve("vlc/plugins"), l.vlcPluginDir)
         assertFailsWith<IllegalArgumentException> { l.executable(VideoTool.VLC) }

@@ -11,7 +11,8 @@ data class VideoToolsLayout(val root: Path, val os: HostOs) {
     fun executable(tool: VideoTool): Path = when (tool) {
         VideoTool.FFMPEG -> root.resolve("ffmpeg").resolve("ffmpeg$exe")
         VideoTool.FFPROBE -> root.resolve("ffmpeg").resolve("ffprobe$exe")
-        VideoTool.YT_DLP -> root.resolve("yt-dlp").resolve("yt-dlp$exe")
+        // The folder build: the launcher sits next to its _internal/ folder.
+        VideoTool.YT_DLP -> root.resolve("yt-dlp").resolve(if (os == HostOs.WINDOWS) "yt-dlp.exe" else "yt-dlp_macos")
         VideoTool.VLC -> throw IllegalArgumentException("${tool.label} is a library, not a program")
     }
 

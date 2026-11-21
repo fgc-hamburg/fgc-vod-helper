@@ -10,7 +10,7 @@ import kotlin.time.Duration.Companion.seconds
 class VideoToolsChecker(
     private val layout: VideoToolsLayout?,
     private val runner: ProcessRunner = SystemProcessRunner(),
-    private val vlcProbe: VlcEngineProbe? = layout?.let { JnaVlcEngineProbe(it.os) },
+    private val vlcProbe: VlcEngineProbe? = layout?.let { JnaVlcEngineProbe() },
     private val timeout: Duration = 30.seconds,
 ) {
     fun check(): VideoToolsReport {
@@ -44,7 +44,7 @@ class VideoToolsChecker(
         (layout.vlcLibraries + listOf(layout.vlcPluginDir)).firstOrNull { !Files.exists(it) }
             ?.let { return ToolStatus.Missing(it.toString()) }
         val raw = try {
-            checkNotNull(vlcProbe) { "no VLC probe" }.rawVersion(layout.vlcLibraries, layout.vlcPluginDir)
+            checkNotNull(vlcProbe) { "no VLC probe" }.rawVersion(layout.vlcLibraries)
         } catch (t: Throwable) {
             return ToolStatus.Broken("couldn't load: ${t.message ?: t::class.simpleName}")
         }

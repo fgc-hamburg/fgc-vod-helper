@@ -73,7 +73,7 @@ abstract class PrepareVideoTools : DefaultTask() {
         val (ffmpegJar, ytDlp, vlc) = files
 
         unpackFfmpeg(ffmpegJar, p, File(dest, "ffmpeg"))
-        copyYtDlp(ytDlp, p, File(dest, "yt-dlp"))
+        unpackYtDlp(ytDlp, p, File(dest, "yt-dlp"))
         if (p.isWindows) unpackVlcWindows(vlc, File(dest, "vlc")) else unpackVlcMac(vlc, File(dest, "vlc"))
 
         notices.get().asFile.copyTo(File(out, "common/THIRD_PARTY_NOTICES.md"), overwrite = true)
@@ -123,11 +123,21 @@ abstract class PrepareVideoTools : DefaultTask() {
         }
     }
 
-    private fun copyYtDlp(source: File, p: ToolPlatform, dir: File) {
+    /** The yt-dlp folder build (launcher next to `_internal/`): starts fast, unlike the single-file build. */
+    private fun unpackYtDlp(zipFile: File, p: ToolPlatform, dir: File) {
         dir.mkdirs()
-        val file = File(dir, if (p.isWindows) "yt-dlp.exe" else "yt-dlp")
-        source.copyTo(file, overwrite = true)
-        if (!p.isWindows) file.setExecutable(true, false)
+        val base = dir.canonicalFile
+        ZipFile(zipFile).use { zip ->
+            for (entry in zip.entries().asSequence().filter { !it.isDirectory }) {
+                val file = File(base, entry.name).canonicalFile
+                if (!file.path.startsWith(base.path + File.separator)) {
+                    throw GradleException("Refusing zip entry outside the target folder: ${entry.name}")
+                }
+                file.parentFile.mkdirs()
+                zip.getInputStream(entry).use { input -> file.outputStream().use { input.copyTo(it) } }
+            }
+        }
+        if (!p.isWindows) File(base, "yt-dlp_macos").setExecutable(true, false)
     }
 
     private fun unpackVlcWindows(zipFile: File, dir: File) {

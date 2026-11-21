@@ -21,7 +21,7 @@ class VideoToolsCheckerTest {
     private lateinit var layout: VideoToolsLayout
     private val commands = mutableListOf<List<String>>()
     private val answers = mutableMapOf<String, Any>()
-    private val vlcCalls = mutableListOf<Pair<List<Path>, Path>>()
+    private val vlcCalls = mutableListOf<List<Path>>()
     private var vlcAnswer: () -> String = { "3.0.24 Vetinari" }
 
     private val runner = ProcessRunner { command, _ ->
@@ -31,8 +31,8 @@ class VideoToolsCheckerTest {
             else -> a as ProcessResult
         }
     }
-    private val probe = VlcEngineProbe { libs, plugins ->
-        vlcCalls += libs to plugins
+    private val probe = VlcEngineProbe { libs ->
+        vlcCalls += libs
         vlcAnswer()
     }
 
@@ -48,7 +48,7 @@ class VideoToolsCheckerTest {
         layout.vlcPluginDir.createDirectories()
         answers["ffmpeg"] = ProcessResult(0, "ffmpeg version 8.1.2 Copyright\n")
         answers["ffprobe"] = ProcessResult(0, "ffprobe version 8.1.2 Copyright\n")
-        answers["yt-dlp"] = ProcessResult(0, "2026.10.26\n")
+        answers["yt-dlp_macos"] = ProcessResult(0, "2026.10.26\n")
     }
 
     @AfterTest
@@ -69,7 +69,7 @@ class VideoToolsCheckerTest {
             ),
             report.statuses,
         )
-        assertEquals(listOf(layout.vlcLibraries to layout.vlcPluginDir), vlcCalls)
+        assertEquals(listOf(layout.vlcLibraries), vlcCalls)
     }
 
     @Test
@@ -89,7 +89,7 @@ class VideoToolsCheckerTest {
 
     @Test
     fun `error exit is broken with the code`() {
-        answers["yt-dlp"] = ProcessResult(3, "boom")
+        answers["yt-dlp_macos"] = ProcessResult(3, "boom")
         assertEquals(ToolStatus.Broken("stopped with error code 3"), check().statuses[VideoTool.YT_DLP])
     }
 
