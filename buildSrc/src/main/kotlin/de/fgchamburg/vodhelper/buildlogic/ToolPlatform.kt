@@ -1,4 +1,4 @@
-package de.fgchamburg.vodhelper.build
+package de.fgchamburg.vodhelper.buildlogic
 
 /** The OS + CPU a set of bundled tools is for. [resourceDir] is the Compose appResources subfolder name. */
 enum class ToolPlatform(val resourceDir: String, val bytedecoClassifier: String, val isWindows: Boolean) {

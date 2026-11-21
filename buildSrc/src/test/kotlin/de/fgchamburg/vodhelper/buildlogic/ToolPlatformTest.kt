@@ -1,4 +1,4 @@
-package de.fgchamburg.vodhelper.build
+package de.fgchamburg.vodhelper.buildlogic
 
 import kotlin.test.Test
 import kotlin.test.assertEquals

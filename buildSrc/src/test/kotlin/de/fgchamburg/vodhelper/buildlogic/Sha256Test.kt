@@ -1,4 +1,4 @@
-package de.fgchamburg.vodhelper.build
+package de.fgchamburg.vodhelper.buildlogic
 
 import org.gradle.api.GradleException
 import java.io.File

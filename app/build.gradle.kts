@@ -1,6 +1,6 @@
-import de.fgchamburg.vodhelper.build.PrepareVideoTools
-import de.fgchamburg.vodhelper.build.ToolPlatform
-import de.fgchamburg.vodhelper.build.VideoToolPins
+import de.fgchamburg.vodhelper.buildlogic.PrepareVideoTools
+import de.fgchamburg.vodhelper.buildlogic.ToolPlatform
+import de.fgchamburg.vodhelper.buildlogic.VideoToolPins
 import org.jetbrains.compose.desktop.application.dsl.TargetFormat
 
 plugins {

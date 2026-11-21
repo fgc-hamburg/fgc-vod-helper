@@ -1,4 +1,4 @@
-package de.fgchamburg.vodhelper.build
+package de.fgchamburg.vodhelper.buildlogic
 
 import org.gradle.api.DefaultTask
 import org.gradle.api.GradleException
@@ -88,8 +88,15 @@ abstract class PrepareVideoTools : DefaultTask() {
         if (target.exists() && sha256Hex(target) == pin.sha256) return target
         logger.lifecycle("Downloading ${pin.url}")
         val part = File(cache, pin.fileName + ".part")
-        URI(pin.url).toURL().openStream().use { input ->
-            part.outputStream().use { input.copyTo(it) }
+        try {
+            val connection = URI(pin.url).toURL().openConnection().apply {
+                connectTimeout = 30_000
+                readTimeout = 60_000
+            }
+            connection.getInputStream().use { input -> part.outputStream().use { input.copyTo(it) } }
+        } catch (e: java.io.IOException) {
+            part.delete()
+            throw GradleException("Couldn't download ${pin.url}: ${e.message}", e)
         }
         Files.move(part.toPath(), target.toPath(), StandardCopyOption.REPLACE_EXISTING)
         verifySha256(target, pin.sha256)

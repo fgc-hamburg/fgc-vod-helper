@@ -1,4 +1,4 @@
-package de.fgchamburg.vodhelper.build
+package de.fgchamburg.vodhelper.buildlogic
 
 data class PinnedDownload(val url: String, val sha256: String) {
     val fileName: String get() = url.substringAfterLast('/')
