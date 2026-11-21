@@ -61,6 +61,7 @@ Every PR needs a good description built from its ticket (template: `.github/pull
 - Versions are `x.y.z` with `x` ≥ 1 (macOS installers require it). The Gradle build reads the version from `-Papp.version`.
 - Build-time keys: `TWITCH_CLIENT_ID`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`. Locally they live in `.env` (git-ignored, created by `make setup` from `.env.example`); the Makefile exports them to every command, so Gradle reads them from the environment. Never commit them. When you add a key, add it to `.env.example` with a comment on where to get it. The build and tests must work without them (features needing them show "not configured"). Release builds get them from GitHub Actions secrets.
 - `main` is protected: changes land only through a PR with green CI.
+- To release or bump the version, use the `release` skill (`/release`).
 
 ## Code rules
 
