@@ -46,6 +46,7 @@ fun AppRoot(
     projects: ProjectStore,
     pickFolder: FolderPicker,
     saves: SaveQueue,
+    openBrowser: BrowserOpener,
 ) {
     val initialSettings = remember { settings.load() }
     var screen by remember { mutableStateOf(if (initialSettings.setupDone) Screen.HOME else Screen.SETUP) }
@@ -87,7 +88,7 @@ fun AppRoot(
     // read (locked, access refused) shows the account as not connected instead of crashing.
     LaunchedEffect(refreshCount) {
         statuses = withContext(Dispatchers.IO) {
-            accounts.associate { it.kind to (runCatching { it.status() }.getOrNull() ?: AccountStatus.NotConnected) }
+            accounts.associate { it.kind to (runCatching { it.checkStatus() }.getOrNull() ?: AccountStatus.NotConnected) }
         }
     }
 
@@ -222,7 +223,7 @@ fun AppRoot(
             }
         }
         connecting?.let { kind ->
-            ConnectDialog(kind) {
+            ConnectDialog(kind, accounts.firstOrNull { it.kind == kind }, openBrowser) {
                 connecting = null
                 refreshCount++
             }

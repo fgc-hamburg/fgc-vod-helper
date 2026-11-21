@@ -75,6 +75,7 @@ val videoToolsProps: Map<String, String> = toolPlatform?.let { p ->
 } ?: emptyMap()
 
 val jvmTestTask = tasks.named<Test>("jvmTest") {
+    maxHeapSize = "1g" // the Compose UI tests together outgrow the 512 MB default
     filter { excludeTestsMatching("*BundledVideoToolsTest") }
     if (snapshotsDir != null) {
         dependsOn(prepareVideoTools)

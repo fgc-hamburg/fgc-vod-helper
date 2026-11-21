@@ -13,11 +13,18 @@ class StoredAccount(
     override fun status(): AccountStatus {
         if (!configured) return AccountStatus.NotConfigured
         val credential = credential() ?: return AccountStatus.NotConnected
+        if (credential.needsReconnect) return AccountStatus.NeedsReconnect(credential.accountName)
         return AccountStatus.Connected(credential.accountName)
     }
 
     override fun save(credential: AccountCredential) {
         store.put(kind.secretKey, json.encodeToString(AccountCredential.serializer(), credential))
+    }
+
+    /** Keeps the stored sign-in but flags that access was lost. Does nothing when none is stored. */
+    fun markNeedsReconnect() {
+        val credential = credential() ?: return
+        save(credential.copy(needsReconnect = true))
     }
 
     override fun signOut() = store.delete(kind.secretKey)

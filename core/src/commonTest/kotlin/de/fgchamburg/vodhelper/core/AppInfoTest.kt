@@ -29,4 +29,9 @@ class AppInfoTest {
         assertFalse(AppInfo.from(version = "1.0.0", googleClientId = "", googleClientSecret = "secret").youtubeConfigured)
         assertTrue(AppInfo.from(version = "1.0.0", googleClientId = "id", googleClientSecret = "secret").youtubeConfigured)
     }
+
+    @Test
+    fun `from keeps the twitch client id`() {
+        assertEquals("abc", AppInfo.from(version = "1.0.0", twitchClientId = "abc").twitchClientId)
+    }
 }

@@ -26,6 +26,8 @@ import de.fgchamburg.vodhelper.core.tools.VideoTool
 import de.fgchamburg.vodhelper.core.tools.VideoToolsChecker
 import de.fgchamburg.vodhelper.core.tools.VideoToolsLayout
 import de.fgchamburg.vodhelper.core.tools.VideoToolsReport
+import de.fgchamburg.vodhelper.core.twitch.TwitchMessages
+import de.fgchamburg.vodhelper.core.twitch.TwitchSignInState
 import java.io.File
 import java.nio.file.Path
 import javax.imageio.ImageIO
@@ -98,7 +100,30 @@ class UiSnapshots {
         snapshot(outDir, "07-setup-ready.png") { SetupScreen(ready, noAction, {}) }
         snapshot(outDir, "08-connect-dialog.png") {
             SetupScreen(none, noAction, {})
-            ConnectDialog(AccountKind.TWITCH) {}
+            ConnectDialog(AccountKind.STARTGG, null, {}) {}
+        }
+        val twitchUri = "https://www.twitch.tv/activate?device-code=ABCDEFGH"
+        snapshot(outDir, "12-twitch-code.png") {
+            SetupScreen(none, noAction, {})
+            TwitchConnectDialog(TwitchSignInState.WaitingForApproval("ABCDEFGH", twitchUri), {}, {}, {})
+        }
+        snapshot(outDir, "13-twitch-connected.png") {
+            SetupScreen(none, noAction, {})
+            TwitchConnectDialog(TwitchSignInState.Connected("FGCHamburg"), {}, {}, {})
+        }
+        snapshot(outDir, "14-setup-twitch-reconnect.png") {
+            SetupScreen(
+                none + mapOf(
+                    AccountKind.TWITCH to AccountStatus.NeedsReconnect("FGCHamburg"),
+                    AccountKind.STARTGG to AccountStatus.Connected("FGC Hamburg"),
+                ),
+                noAction,
+                {},
+            )
+        }
+        snapshot(outDir, "15-twitch-code-expired.png") {
+            SetupScreen(none, noAction, {})
+            TwitchConnectDialog(TwitchSignInState.Failed(TwitchMessages.CODE_EXPIRED), {}, {}, {})
         }
         snapshot(outDir, "09-home-missing-account.png") {
             HomeScreen(info, missingStartgg, emptyList(), none2, {}, {}, none2, notice = null)
