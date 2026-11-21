@@ -33,7 +33,10 @@ fun main(args: Array<String>) {
             title = "${info.name} ${info.version}",
             state = rememberWindowState(size = DpSize(1100.dp, 720.dp)),
         ) {
-            AppScreen(info, tools)
+            AppTheme {
+                // Temporary until AppRoot (FGC-3 task 4) wires accounts and navigation.
+                HomeScreen(info, statuses = null, onNewProject = {}, onOpenSettings = {}, notice = null)
+            }
         }
     }
 }

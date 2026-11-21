@@ -40,7 +40,11 @@ class UiSnapshots {
 
     private fun snapshot(outDir: File, name: String, tools: VideoToolsReport?) = runComposeUiTest {
         setContent {
-            Box(Modifier.size(1100.dp, 720.dp)) { AppScreen(info, tools) }
+            Box(Modifier.size(1100.dp, 720.dp)) {
+                AppTheme {
+                    SettingsScreen(info, statuses = null, tools = tools, onAction = { _, _ -> }, onBack = {})
+                }
+            }
         }
         val image = onRoot().captureToImage().toAwtImage()
         ImageIO.write(image, "png", File(outDir, name))
