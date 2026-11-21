@@ -11,6 +11,11 @@ endif
 .DEFAULT_GOAL := help
 
 GRADLE := ./gradlew
+ifeq ($(OS),Windows_NT)
+# Windows make runs simple command lines without the shell, and Windows can't start the
+# gradlew script directly (it hands it to cmd.exe, which fails). Run it through bash instead.
+GRADLE := bash ./gradlew
+endif
 DIST := dist
 APP := fgc-vod-helper
 # Version for package/release: app.version in gradle.properties, unless given on the
