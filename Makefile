@@ -54,6 +54,7 @@ run: ## Run the app locally
 
 check: ## Compile, test and lint — what CI runs, must pass before a PR
 	$(GRADLE) check --stacktrace
+	$(GRADLE) -p buildSrc test --stacktrace
 
 test: ## Run unit tests only (all modules)
 	$(GRADLE) allTests
