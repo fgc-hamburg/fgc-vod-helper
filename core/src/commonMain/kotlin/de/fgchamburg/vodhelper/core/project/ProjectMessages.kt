@@ -25,6 +25,9 @@ object ProjectMessages {
     fun alreadyExists(folderName: String): String =
         "There is already a project called \"$folderName\" in this folder. Open it from Recent projects or pick another name."
 
+    fun folderNotEmpty(folderName: String): String =
+        "There is already a folder called \"$folderName\" here with other files in it. Pick another name or folder."
+
     fun couldNotCreate(reason: String): String = "The project couldn't be created: $reason"
 
     fun saveStatus(state: SaveState): String = when (state) {

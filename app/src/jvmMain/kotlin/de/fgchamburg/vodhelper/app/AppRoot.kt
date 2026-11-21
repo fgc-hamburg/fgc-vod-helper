@@ -19,19 +19,24 @@ import de.fgchamburg.vodhelper.core.project.ProjectMessages
 import de.fgchamburg.vodhelper.core.project.ProjectSession
 import de.fgchamburg.vodhelper.core.project.ProjectStore
 import de.fgchamburg.vodhelper.core.project.SaveState
+import de.fgchamburg.vodhelper.core.settings.AppSettings
 import de.fgchamburg.vodhelper.core.settings.RecentProject
 import de.fgchamburg.vodhelper.core.settings.RecentProjects
 import de.fgchamburg.vodhelper.core.settings.SettingsStore
+import de.fgchamburg.vodhelper.core.settings.update
 import de.fgchamburg.vodhelper.core.tools.VideoToolsReport
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.future.await
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 enum class Screen { SETUP, HOME, SETTINGS, NEW_PROJECT, PROJECT }
 
-/** Holds navigation and account state; the screens themselves are stateless. */
-@OptIn(ExperimentalCoroutinesApi::class)
+/**
+ * Holds navigation, account and project state; the screens themselves are stateless.
+ * Every write to disk (project and settings) goes through [saves], queued at the moment of the
+ * change, so writes land in order and aren't lost when the screen goes away or the app quits.
+ */
 @Composable
 fun AppRoot(
     info: AppInfo,
@@ -40,42 +45,41 @@ fun AppRoot(
     settings: SettingsStore,
     projects: ProjectStore,
     pickFolder: FolderPicker,
+    saves: SaveQueue,
 ) {
-    var screen by remember { mutableStateOf(if (settings.load().setupDone) Screen.HOME else Screen.SETUP) }
+    val initialSettings = remember { settings.load() }
+    var screen by remember { mutableStateOf(if (initialSettings.setupDone) Screen.HOME else Screen.SETUP) }
     var statuses by remember { mutableStateOf<Map<AccountKind, AccountStatus>?>(null) }
     var refreshCount by remember { mutableStateOf(0) }
     var connecting by remember { mutableStateOf<AccountKind?>(null) }
     var notice by remember { mutableStateOf<String?>(null) }
-    var recent by remember { mutableStateOf(settings.load().recentProjects) }
+    var recent by remember { mutableStateOf(initialSettings.recentProjects) }
+    var lastFolder by remember { mutableStateOf(initialSettings.lastProjectsFolder) }
     var session by remember { mutableStateOf<ProjectSession?>(null) }
     var project by remember { mutableStateOf<Project?>(null) }
     var saveState by remember { mutableStateOf<SaveState>(SaveState.Saved) }
+    var nameError by remember { mutableStateOf<String?>(null) }
     var newName by remember { mutableStateOf("") }
     var newFolder by remember { mutableStateOf<String?>(null) }
     var newError by remember { mutableStateOf<String?>(null) }
+    var creating by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
-    // One thread for saves, so they happen in order and never overlap.
-    val saveDispatcher = remember { Dispatchers.IO.limitedParallelism(1) }
 
-    // Updates the list on screen at once, then writes it to the settings file (read-modify-write).
-    // If the file can't be written the list is still right for this run. Runs on the save thread,
-    // so writes from fast typing land in order and the last name always wins.
-    suspend fun rememberRecent(list: List<RecentProject>, lastFolder: String? = null) {
+    // If the settings file can't be written, what's on screen is still right for this run.
+    fun writeSettings(change: (AppSettings) -> AppSettings) {
+        saves.submit { runCatching { settings.update(change) } }
+    }
+
+    fun setRecent(list: List<RecentProject>) {
         recent = list
-        withContext(saveDispatcher) {
-            runCatching {
-                val current = settings.load()
-                settings.save(
-                    current.copy(recentProjects = list, lastProjectsFolder = lastFolder ?: current.lastProjectsFolder),
-                )
-            }
-        }
+        writeSettings { it.copy(recentProjects = list) }
     }
 
     fun startSession(folder: String, opened: Project) {
         session = ProjectSession(projects, folder, opened)
         project = opened
         saveState = SaveState.Saved
+        nameError = null
         screen = Screen.PROJECT
     }
 
@@ -105,7 +109,7 @@ fun AppRoot(
                 onContinue = {
                     screen = Screen.HOME
                     // If the settings file can't be written, setup simply shows again next launch.
-                    scope.launch { withContext(Dispatchers.IO) { runCatching { settings.save(settings.load().copy(setupDone = true)) } } }
+                    writeSettings { it.copy(setupDone = true) }
                 },
             )
             Screen.HOME -> HomeScreen(
@@ -116,7 +120,7 @@ fun AppRoot(
                     notice = null
                     newName = ""
                     newError = null
-                    newFolder = settings.load().lastProjectsFolder
+                    newFolder = lastFolder
                     screen = Screen.NEW_PROJECT
                 },
                 onOpenRecent = { entry ->
@@ -127,13 +131,13 @@ fun AppRoot(
                         }
                         if (result is LoadResult.Loaded) {
                             startSession(entry.folder, result.project)
-                            rememberRecent(RecentProjects.opened(recent, RecentProject(entry.folder, result.project.name)))
+                            setRecent(RecentProjects.opened(recent, RecentProject(entry.folder, result.project.name)))
                         } else {
                             notice = ProjectMessages.cannotOpen(entry.name, result)
                         }
                     }
                 },
-                onRemoveRecent = { entry -> scope.launch { rememberRecent(RecentProjects.removed(recent, entry.folder)) } },
+                onRemoveRecent = { entry -> setRecent(RecentProjects.removed(recent, entry.folder)) },
                 onOpenSettings = {
                     notice = null
                     screen = Screen.SETTINGS
@@ -158,26 +162,30 @@ fun AppRoot(
                 },
                 onCreate = {
                     val parent = newFolder
-                    if (parent != null) {
+                    if (parent != null && !creating) {
+                        creating = true
+                        val name = newName
                         scope.launch {
                             val result = withContext(Dispatchers.IO) {
-                                runCatching { projects.create(parent, newName) }
+                                runCatching { projects.create(parent, name) }
                                     .getOrElse { CreateResult.Refused(ProjectMessages.couldNotCreate(it.message ?: "unknown error")) }
                             }
+                            creating = false
                             when (result) {
                                 is CreateResult.Refused -> newError = result.message
                                 is CreateResult.Created -> {
                                     startSession(result.folder, result.project)
-                                    rememberRecent(
-                                        RecentProjects.opened(recent, RecentProject(result.folder, result.project.name)),
-                                        lastFolder = parent,
-                                    )
+                                    val list = RecentProjects.opened(recent, RecentProject(result.folder, result.project.name))
+                                    recent = list
+                                    lastFolder = parent
+                                    writeSettings { it.copy(recentProjects = list, lastProjectsFolder = parent) }
                                 }
                             }
                         }
                     }
                 },
                 onCancel = { screen = Screen.HOME },
+                creating = creating,
             )
             Screen.PROJECT -> {
                 val open = session
@@ -188,12 +196,19 @@ fun AppRoot(
                         folder = open.folder,
                         saveState = saveState,
                         onRename = { newProjectName ->
-                            // The text field follows the keys at once; the save happens behind it.
+                            // The text field follows the keys at once; the save is queued right now.
                             project = current.copy(name = newProjectName)
-                            scope.launch {
-                                val state = withContext(saveDispatcher) { open.update { it.copy(name = newProjectName) } }
-                                if (session === open) saveState = state
-                                rememberRecent(RecentProjects.opened(recent, RecentProject(open.folder, newProjectName)))
+                            if (newProjectName.isBlank()) {
+                                // A blank name is shown while typing but never saved.
+                                nameError = ProjectMessages.NAME_REQUIRED
+                            } else {
+                                nameError = null
+                                val saved = saves.submit { open.update { it.copy(name = newProjectName) } }
+                                setRecent(RecentProjects.opened(recent, RecentProject(open.folder, newProjectName)))
+                                scope.launch {
+                                    val state = saved.await()
+                                    if (session === open) saveState = state
+                                }
                             }
                         },
                         onClose = {
@@ -201,6 +216,7 @@ fun AppRoot(
                             project = null
                             screen = Screen.HOME
                         },
+                        nameError = nameError,
                     )
                 }
             }

@@ -31,6 +31,7 @@ fun NewProjectScreen(
     onChooseFolder: () -> Unit,
     onCreate: () -> Unit,
     onCancel: () -> Unit,
+    creating: Boolean = false,
 ) {
     Column(
         modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(24.dp),
@@ -56,7 +57,7 @@ fun NewProjectScreen(
             ProjectMessages.willCreate(name)?.let { Text(it, style = MaterialTheme.typography.bodyMedium) }
             error?.let { Text(it, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.error) }
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Button(onClick = onCreate, enabled = ProjectNames.folderName(name) != null && folder != null) {
+                Button(onClick = onCreate, enabled = !creating && ProjectNames.folderName(name) != null && folder != null) {
                     Text(ProjectMessages.CREATE)
                 }
             }

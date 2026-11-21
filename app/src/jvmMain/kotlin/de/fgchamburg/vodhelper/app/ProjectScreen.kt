@@ -29,6 +29,7 @@ fun ProjectScreen(
     saveState: SaveState,
     onRename: (String) -> Unit,
     onClose: () -> Unit,
+    nameError: String? = null,
 ) {
     Column(
         modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(24.dp),
@@ -44,8 +45,10 @@ fun ProjectScreen(
                 onValueChange = onRename,
                 label = { Text(ProjectMessages.NAME_LABEL) },
                 singleLine = true,
+                isError = nameError != null,
                 modifier = Modifier.fillMaxWidth().testTag("project-name"),
             )
+            nameError?.let { Text(it, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.error) }
             Text(folder, style = MaterialTheme.typography.bodyMedium)
             Text(ProjectMessages.saveStatus(saveState), style = MaterialTheme.typography.bodyMedium)
             Text(ProjectMessages.NEXT_STEP_PLACEHOLDER, style = MaterialTheme.typography.bodyLarge)

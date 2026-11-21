@@ -3,6 +3,8 @@ package de.fgchamburg.vodhelper.core.project
 import java.io.IOException
 import java.nio.file.Files
 import java.nio.file.Path
+import java.nio.file.attribute.PosixFileAttributeView
+import java.nio.file.attribute.PosixFilePermissions
 import kotlin.io.path.createDirectories
 import kotlin.io.path.exists
 import kotlin.io.path.listDirectoryEntries
@@ -64,6 +66,37 @@ class FileProjectStoreTest {
         val parent = tempDir()
         parent.resolve("Weekly").createDirectories()
         assertIs<CreateResult.Created>(store.create(parent.toAbsolutePath().toString(), "Weekly"))
+    }
+
+    @Test
+    fun `create refuses a folder that has other files`() {
+        val parent = tempDir()
+        parent.resolve("Weekly").createDirectories().resolve("clip.mp4").writeText("x")
+        assertEquals(
+            CreateResult.Refused(ProjectMessages.folderNotEmpty("Weekly")),
+            store.create(parent.toAbsolutePath().toString(), "Weekly"),
+        )
+        assertEquals(listOf("clip.mp4"), names(parent.resolve("Weekly")))
+    }
+
+    private fun posix(dir: Path): Boolean = Files.getFileAttributeView(dir, PosixFileAttributeView::class.java) != null
+
+    @Test
+    fun `a new project file is readable by others`() {
+        val dir = tempDir()
+        if (!posix(dir)) return
+        store.save(dir.toString(), sample)
+        assertEquals("rw-r--r--", PosixFilePermissions.toString(Files.getPosixFilePermissions(dir.resolve("project.json"))))
+    }
+
+    @Test
+    fun `save keeps the file's permissions`() {
+        val dir = tempDir()
+        if (!posix(dir)) return
+        store.save(dir.toString(), sample)
+        Files.setPosixFilePermissions(dir.resolve("project.json"), PosixFilePermissions.fromString("rw-rw-r--"))
+        store.save(dir.toString(), sample.copy(name = "Renamed"))
+        assertEquals("rw-rw-r--", PosixFilePermissions.toString(Files.getPosixFilePermissions(dir.resolve("project.json"))))
     }
 
     @Test

@@ -8,6 +8,8 @@ import java.nio.file.Path
 import java.nio.file.StandardCopyOption.ATOMIC_MOVE
 import java.nio.file.StandardCopyOption.REPLACE_EXISTING
 import java.nio.file.StandardOpenOption.WRITE
+import java.nio.file.attribute.PosixFileAttributeView
+import java.nio.file.attribute.PosixFilePermissions
 
 /**
  * Keeps each project in `<folder>/project.json`. Saves write a temp file, flush it to disk and
@@ -26,6 +28,9 @@ class FileProjectStore internal constructor(
             val folder = parent.resolve(folderName).toAbsolutePath()
             if (Files.exists(folder.resolve(ProjectJson.FILE_NAME))) {
                 return CreateResult.Refused(ProjectMessages.alreadyExists(folderName))
+            }
+            if (Files.isDirectory(folder) && Files.list(folder).use { it.findAny().isPresent }) {
+                return CreateResult.Refused(ProjectMessages.folderNotEmpty(folderName))
             }
             Files.createDirectories(folder)
             val project = Project(name = name.trim())
@@ -57,13 +62,26 @@ class FileProjectStore internal constructor(
 
     override fun save(folder: String, project: Project) {
         val dir = Path.of(folder)
+        val target = dir.resolve(ProjectJson.FILE_NAME)
         val tmp = Files.createTempFile(dir, TEMP_PREFIX, TEMP_SUFFIX)
         try {
+            keepPermissions(tmp, target)
             writeTemp(tmp, ProjectJson.encode(project).toByteArray(Charsets.UTF_8))
-            Files.move(tmp, dir.resolve(ProjectJson.FILE_NAME), ATOMIC_MOVE, REPLACE_EXISTING)
+            Files.move(tmp, target, ATOMIC_MOVE, REPLACE_EXISTING)
         } finally {
             Files.deleteIfExists(tmp)
         }
+    }
+
+    /**
+     * Temp files are created owner-only (rw-------) and the rename would pass that on to project.json.
+     * Give the temp file the old file's permissions, or the usual rw-r--r-- for a new project.
+     */
+    private fun keepPermissions(tmp: Path, target: Path) {
+        if (Files.getFileAttributeView(tmp, PosixFileAttributeView::class.java) == null) return
+        val permissions =
+            if (Files.exists(target)) Files.getPosixFilePermissions(target) else PosixFilePermissions.fromString("rw-r--r--")
+        Files.setPosixFilePermissions(tmp, permissions)
     }
 
     /** Temp files from a save that was cut short; best effort, errors ignored. */

@@ -16,11 +16,13 @@ sealed interface ProjectDecodeResult {
 object ProjectJson {
     const val FILE_NAME = "project.json"
 
+    // Unknown fields are refused, not dropped: an older app must never strip a newer app's data on its
+    // next autosave. Every model change bumps PROJECT_SCHEMA_VERSION, so older apps say "update the app".
     private val json = Json {
         prettyPrint = true
         encodeDefaults = true
         explicitNulls = true
-        ignoreUnknownKeys = true
+        ignoreUnknownKeys = false
     }
 
     fun encode(project: Project): String = json.encodeToString(Project.serializer(), project) + "\n"

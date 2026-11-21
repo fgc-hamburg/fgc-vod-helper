@@ -36,12 +36,13 @@ class AppRootTest {
     private val settings = InMemorySettingsStore()
     private val projects = InMemoryProjectStore()
     private val picker = FolderPicker { _, _ -> "/projects" }
+    private val saves = SaveQueue()
 
     private fun connect(kind: AccountKind, name: String) =
         accounts.first { it.kind == kind }.save(AccountCredential(name, "secret", null))
 
     private fun ComposeUiTest.start() {
-        setContent { AppRoot(info, tools = null, accounts = accounts, settings = settings, projects = projects, pickFolder = picker) }
+        setContent { AppRoot(info, tools = null, accounts = accounts, settings = settings, projects = projects, pickFolder = picker, saves = saves) }
         waitForStatuses()
     }
 
@@ -56,7 +57,7 @@ class AppRootTest {
             override fun delete(key: String) = error("password store locked")
         }
         val brokenAccounts = Accounts.create(info, broken)
-        setContent { AppRoot(info, tools = null, accounts = brokenAccounts, settings = settings, projects = projects, pickFolder = picker) }
+        setContent { AppRoot(info, tools = null, accounts = brokenAccounts, settings = settings, projects = projects, pickFolder = picker, saves = saves) }
         waitForStatuses()
 
         onAllNodesWithText("Not connected").assertCountEquals(3)
@@ -185,6 +186,33 @@ class AppRootTest {
                 settings.current.recentProjects.firstOrNull()?.name == "Weekly #13"
         }
         assertEquals(RecentProject("/projects/Weekly", "Weekly #13"), settings.current.recentProjects.single())
+    }
+
+    @Test
+    fun `a blank name is not saved`() = runComposeUiTest {
+        readyForProjects()
+        start()
+        createProject("Weekly")
+
+        onNodeWithTag("project-name").performTextReplacement("   ")
+
+        onNodeWithText("Give the project a name.").assertExists()
+        saves.awaitIdle()
+        assertEquals("Weekly", projects.projects["/projects/Weekly"]?.name)
+        assertEquals("Weekly", settings.current.recentProjects.single().name)
+    }
+
+    @Test
+    fun `fast renames all land, in order`() = runComposeUiTest {
+        readyForProjects()
+        start()
+        createProject("W")
+
+        for (name in listOf("We", "Wee", "Week", "Weekl", "Weekly")) onNodeWithTag("project-name").performTextReplacement(name)
+        saves.awaitIdle()
+
+        assertEquals("Weekly", projects.projects["/projects/W"]?.name)
+        assertEquals(RecentProject("/projects/W", "Weekly"), settings.current.recentProjects.single())
     }
 
     @Test

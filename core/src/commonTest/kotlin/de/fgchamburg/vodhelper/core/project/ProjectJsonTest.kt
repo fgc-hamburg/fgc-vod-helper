@@ -149,10 +149,8 @@ class ProjectJsonTest {
     }
 
     @Test
-    fun `unknown fields are ignored`() {
-        val result = ProjectJson.decode("""{"schemaVersion": 1, "name": "x", "future": 1}""")
-        assertEquals(ProjectDecodeResult.Ok(Project(name = "x")), result)
-    }
+    fun `unknown fields make the file unreadable instead of being dropped on the next save`() =
+        assertUnreadable(ProjectJson.decode("""{"schemaVersion": 1, "name": "x", "future": 1}"""))
 
     private fun assertUnreadable(result: ProjectDecodeResult) {
         assertIs<ProjectDecodeResult.Unreadable>(result)

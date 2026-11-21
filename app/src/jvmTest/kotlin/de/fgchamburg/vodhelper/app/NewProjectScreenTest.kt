@@ -35,6 +35,13 @@ class NewProjectScreenTest {
     }
 
     @Test
+    fun `create is disabled while creating`() = runComposeUiTest {
+        setContent { NewProjectScreen("Weekly", "/x", null, {}, {}, {}, {}, creating = true) }
+
+        onNodeWithText("Create project").assertIsNotEnabled()
+    }
+
+    @Test
     fun `shows the chosen folder and the new folder name`() = runComposeUiTest {
         setContent { NewProjectScreen("SF6: Top 8", "/Users/x/Videos", null, {}, {}, {}, {}) }
 

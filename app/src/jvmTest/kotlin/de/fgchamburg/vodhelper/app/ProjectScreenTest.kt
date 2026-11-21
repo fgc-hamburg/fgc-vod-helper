@@ -46,6 +46,13 @@ class ProjectScreenTest {
     }
 
     @Test
+    fun `shows the name error`() = runComposeUiTest {
+        setContent { ProjectScreen(project.copy(name = ""), "/v/Weekly", SaveState.Saved, {}, {}, nameError = "Give the project a name.") }
+
+        onNodeWithText("Give the project a name.").assertExists()
+    }
+
+    @Test
     fun `has no save button`() = runComposeUiTest {
         setContent { ProjectScreen(project, "/v/Weekly", SaveState.Saved, {}, {}) }
 

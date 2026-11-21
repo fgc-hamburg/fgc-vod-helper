@@ -32,6 +32,10 @@ class ProjectMessagesTest {
             "There is already a project called \"Weekly\" in this folder. Open it from Recent projects or pick another name.",
             ProjectMessages.alreadyExists("Weekly"),
         )
+        assertEquals(
+            "There is already a folder called \"Weekly\" here with other files in it. Pick another name or folder.",
+            ProjectMessages.folderNotEmpty("Weekly"),
+        )
         assertEquals("The project couldn't be created: boom", ProjectMessages.couldNotCreate("boom"))
     }
 

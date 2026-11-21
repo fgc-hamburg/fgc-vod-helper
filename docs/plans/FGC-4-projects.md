@@ -317,3 +317,17 @@ Files: `CLAUDE.md`.
 - "Open project from any folder" (browsing to a `project.json` not in the recent list). Only the recent list reopens projects in this ticket; suggest a follow-up if needed.
 - Migrating older schema versions (there is only version 1).
 - Flushing the last save when the window is closed mid-write (the file stays valid either way).
+
+## Changes after self-review
+
+Code review (medium) on the branch found these; all fixed except the last:
+
+- **Last keystrokes lost on quit.** Saves were coroutines tied to the screen, so closing the window could drop queued ones. Now every disk write (project and settings) goes through `SaveQueue` (app, one background thread), queued the moment the change is made. Closing the window and a JVM shutdown hook wait for the queue (`awaitIdle`, 5 s cap). Replaces `limitedParallelism(1)` from the Approach.
+- **Older app dropping a newer app's fields.** `ProjectJson` now uses `ignoreUnknownKeys = false` (an unknown field makes the file Unreadable, so it's never overwritten), and every model change bumps `PROJECT_SCHEMA_VERSION` (an older app then says "update the app"). `CLAUDE.md` says so. Replaces the "unknown fields are ignored" test.
+- **Blank rename.** A blank name is shown while typing but never saved; the project screen shows `NAME_REQUIRED` under the field.
+- **Closed project jumping back to the top of Recent projects.** The new recent list is computed at the moment of the change and written in order through the queue.
+- **`project.json` becoming owner-only on macOS.** The temp file gets the old file's POSIX permissions (or `rw-r--r--` for a new project) before the rename.
+- **Create reusing a folder with other files.** Refused with `folderNotEmpty`: `There is already a folder called "<name>" here with other files in it. Pick another name or folder.` An empty existing folder is still fine.
+- **Double-click on Create.** The button is disabled while a create runs.
+- **Settings read-modify-write in the UI.** Now `SettingsStore.update(change)` in core (tested); the last folder is kept in memory.
+- **Left open:** opening a project deletes leftover temp files, which could hit a save in progress from a *second* running copy of the app with the same project open. Two copies editing one project would overwrite each other anyway; not handled in this ticket.
