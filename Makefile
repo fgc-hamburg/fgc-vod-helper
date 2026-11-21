@@ -7,8 +7,11 @@ SHELL := bash
 GRADLE := ./gradlew
 DIST := dist
 APP := fgc-vod-helper
-# Default release version: the one in gradle.properties. Override with VERSION=x.y.z.
-VERSION ?= $(shell sed -n 's/^app.version=//p' gradle.properties)
+# Version for package/release: app.version in gradle.properties, unless given on the
+# command line (make package VERSION=x.y.z). A VERSION environment variable is ignored.
+APP_VERSION := $(shell sed -n 's/^app\.version[[:space:]]*=//p' gradle.properties | tr -d '[:space:]')
+override VERSION := $(if $(filter command line,$(origin VERSION)),$(VERSION),$(APP_VERSION))
+BINARIES := app/build/compose/binaries/main
 
 # Local keys from .env (created by `make setup`) are passed to Gradle as
 # environment variables. In CI they come from GitHub Actions secrets instead.
@@ -55,17 +58,18 @@ clean: ## Remove build outputs and dist/
 
 package: ## Build this OS's installer into a fresh dist/ — make package [VERSION=1.2.3] (default: app.version in gradle.properties)
 	@test -n "$(VERSION)" || { echo "No VERSION given and no app.version in gradle.properties"; exit 1; }
-	rm -rf $(DIST)
+	rm -rf $(DIST) $(BINARIES)
 	$(GRADLE) packageDistributionForCurrentOS -Papp.version=$(VERSION)
 	@mkdir -p $(DIST)
-	@find . -path '*/build/compose/binaries/*' \( -name '*-$(VERSION).dmg' -o -name '*-$(VERSION).msi' \) -print0 | \
-		while IFS= read -r -d '' f; do cp "$$f" "$(DIST)/$(APP)-$(VERSION).$${f##*.}"; done
+	@n=0; while IFS= read -r -d '' f; do cp "$$f" "$(DIST)/$(APP)-$(VERSION).$${f##*.}"; n=$$((n+1)); done < \
+		<(find $(BINARIES) \( -name '*-$(VERSION).dmg' -o -name '*-$(VERSION).msi' \) -print0); \
+		[ $$n -eq 1 ] || { echo "Expected 1 installer in $(BINARIES), found $$n"; exit 1; }
 	@ls -1 $(DIST)
 
 version: ## Print the latest release tag
 	@git describe --tags --abbrev=0 --match 'v*' 2>/dev/null || echo "No release yet"
 
-release: ## Tag main and push it; CI builds installers and publishes the GitHub Release — make release VERSION=1.2.3
+release: ## Tag main and push it; CI builds installers and publishes the GitHub Release — make release [VERSION=1.2.3] (default: app.version)
 	@bash scripts/release.sh "$(VERSION)"
 
 # --- Ticket workflow -------------------------------------------------------

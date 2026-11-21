@@ -46,7 +46,7 @@ Interfaces (produced):
 - [ ] Generate wrapper (Gradle 9.3.0); write version catalog and settings.
 - [ ] Failing tests: `AppInfoTest.versionLabel shows the version` (`AppInfo("FGC VOD Helper","1.2.3",false,false).versionLabel == "Version 1.2.3"`), `AppInfoTest.keys are configured only when non-blank` (blank twitch id → `twitchConfigured == false`; youtube needs both Google values), `BuildConfigTest.version matches the Gradle property` (test reads system property `app.version` set by Gradle for the test task; equals `BuildConfig.VERSION`).
 - [ ] Implement generation task + `AppInfo`. Version validation fails the build for `0.1.0` and `1.0`.
-- [ ] `./gradlew :core:test` passes; `./gradlew :core:test -Papp.version=0.1.0` fails with a clear message. Commit.
+- [ ] `make test` passes; `make package VERSION=0.1.0` fails early with a clear message. Commit.
 
 ### Task 2: `app` module — window showing name and version
 
@@ -56,7 +56,7 @@ Interfaces: `@Composable fun AppScreen(info: AppInfo)`; `fun main()` opens `Wind
 
 - [ ] Failing UI test `AppScreenTest.shows name and version`: `runComposeUiTest { setContent { AppScreen(AppInfo("FGC VOD Helper","1.2.3",false,false)) }; onNodeWithText("FGC VOD Helper").assertExists(); onNodeWithText("Version 1.2.3").assertExists() }`.
 - [ ] Implement screen: centered name (headline) + version label. Material 3, light/dark from system. Plain text only; no images/art.
-- [ ] `./gradlew check` passes; `./gradlew :app:run` opens the window. Commit.
+- [ ] `make check` passes; `make run` opens the window. Commit.
 
 ### Task 3: Packaging + Makefile + CI package job
 

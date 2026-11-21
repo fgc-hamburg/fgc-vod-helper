@@ -6,7 +6,9 @@ import kotlin.test.assertEquals
 class BuildConfigTest {
     @Test
     fun `version matches the Gradle property`() {
-        assertEquals(System.getProperty("app.version"), BuildConfig.VERSION)
+        // Set by Gradle's test task; other runners (e.g. the IDE's) don't pass it.
+        val expected = System.getProperty("app.version") ?: return
+        assertEquals(expected, BuildConfig.VERSION)
     }
 
     @Test
