@@ -11,3 +11,6 @@ media/
 .env.*
 !.env.example
 dist/
+
+# buildSrc packages are named "build"; keep them tracked
+!buildSrc/src/**/build/
