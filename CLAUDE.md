@@ -1,6 +1,6 @@
 # FGC VOD Helper
 
-Desktop app (macOS + Windows) that turns our Twitch tournament VODs into one YouTube-ready video with match chapters. Kotlin Multiplatform, Compose for Desktop, JVM target.
+Desktop app (macOS + Windows) that turns our Twitch tournament VODs into one YouTube-ready video with match chapters. Kotlin, Compose for Desktop (Compose Multiplatform), JVM 21.
 
 ## Where things are decided
 
@@ -34,6 +34,14 @@ Every PR needs a good description built from its ticket (template: `.github/pull
   - one or two sentences telling the reviewer what to look at and what to judge ("Check the Connect buttons are clear about which accounts are required").
 - Media goes on the `pr-media` branch, never on the feature branch (see `implement-ticket` skill, step 7).
 
+## Code layout
+
+- `core/` — app logic in plain Kotlin, no UI imports. Unit-tested directly. Package `de.fgchamburg.vodhelper.core`.
+- `app/` — the Compose Desktop window, screens and installer settings. Depends on `core`. Package `de.fgchamburg.vodhelper.app`.
+- Version: `app.version` in `gradle.properties` is the only place it's set. `-Papp.version=x.y.z` overrides it for one build. The build fails early on an invalid version.
+- `BuildConfig` (version and build-time keys) is generated into `core/build/` at build time. Never commit it.
+- Installers: `app/build.gradle.kts` → `nativeDistributions`. The Windows `upgradeUuid` must never change.
+
 ## Build and test
 
 **Every action goes through the `Makefile`.** Run `make` to list targets. CI and release workflows call the same targets. When you add a new repeatable action (a script, a Gradle task people need, a tool setup), add a `make` target for it with a `## description`, and use that target in docs and workflows instead of the raw command.
@@ -44,8 +52,8 @@ Every PR needs a good description built from its ticket (template: `.github/pull
 | Run the app | `make run` |
 | Compile, test, lint (what CI runs; must pass before a PR) | `make check` |
 | Unit tests only | `make test` |
-| Build this OS's installer into `dist/` | `make package VERSION=1.2.3` |
-| Release (tag `main`, CI builds installers and publishes the GitHub Release) | `make release VERSION=1.2.3` |
+| Build this OS's installer into `dist/` (version from `gradle.properties`, or `VERSION=1.2.3`) | `make package` |
+| Release `app.version` (or `VERSION=1.2.3`): tags `main`, CI builds installers and publishes the GitHub Release | `make release` |
 | Worktree for a ticket | `make worktree TICKET=FGC-1 BRANCH=<Linear branch name>` |
 | Upload PR screenshots/GIFs | `make pr-media TICKET=FGC-1` |
 
@@ -71,4 +79,4 @@ Every PR needs a good description built from its ticket (template: `.github/pull
 - Test-first for logic (`superpowers:test-driven-development`).
 - Each Scope bullet in the ticket maps to at least one automated test, or to a manual check listed in the PR when it's UI-only.
 - Video fixtures are generated in tests with ffmpeg (`testsrc`/`sine`, a few seconds long), never committed as large binaries.
-- UI behavior that can't be automated is verified by running the app (`./gradlew run`) and described in the PR.
+- UI behavior that can't be automated is verified by running the app (`make run`) and described in the PR.
