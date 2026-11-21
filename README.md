@@ -21,6 +21,20 @@ Requirements: JDK 21 and `make`. On Windows, run `make` from Git Bash.
 
 Run `make` to see every command.
 
+## Bundled video tools
+
+The app ships with the video tools it needs, so nobody has to install them:
+
+- ffmpeg and ffprobe 8.1.2
+- yt-dlp 2026.10.26 (folder build, so it starts fast)
+- VLC engine 3.0.24 (libvlc, for the video player)
+
+The build downloads them once (cached in the Gradle user home) and checks their checksums. The versions, URLs and checksums are pinned in `buildSrc/src/main/kotlin/de/fgchamburg/vodhelper/buildlogic/VideoToolPins.kt`. `make check` downloads the tools once (cached) and runs them in a test; `make test` stays offline and never downloads. Installers bundle the tools for the OS and CPU of the machine that builds them.
+
+To bump a tool: change its version, URL and sha256 in `VideoToolPins.kt`, update `THIRD_PARTY_NOTICES.md`, then run `make check` and `make package && make verify-package`. `make verify-package` builds the app folder that goes into the installer and runs it with `--check-tools` and prints whether each tool is ready (no window opens). CI runs it for every installer.
+
+On macOS, the first check after installing can take about 25 seconds while the system checks the new files.
+
 ## Release
 
 1. Merge everything you want to release into `main`.
