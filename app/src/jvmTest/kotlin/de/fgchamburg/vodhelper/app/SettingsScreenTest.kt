@@ -2,16 +2,21 @@ package de.fgchamburg.vodhelper.app
 
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.v2.runComposeUiTest
 import de.fgchamburg.vodhelper.core.AppInfo
+import de.fgchamburg.vodhelper.core.accounts.AccountKind
+import de.fgchamburg.vodhelper.core.accounts.AccountStatus
 import de.fgchamburg.vodhelper.core.tools.ToolStatus
 import de.fgchamburg.vodhelper.core.tools.VideoTool
 import de.fgchamburg.vodhelper.core.tools.VideoToolsReport
 import kotlin.test.Test
+import kotlin.test.assertEquals
 
 @OptIn(ExperimentalTestApi::class)
-class AppScreenTest {
+class SettingsScreenTest {
     private val info = AppInfo.from(version = "1.2.3")
+    private val statuses = AccountKind.entries.associateWith<AccountKind, AccountStatus> { AccountStatus.NotConnected }
 
     private fun readyStatuses(): Map<VideoTool, ToolStatus> = mapOf(
         VideoTool.FFMPEG to ToolStatus.Ready("8.1.2"),
@@ -21,23 +26,35 @@ class AppScreenTest {
     )
 
     @Test
-    fun `shows name and version`() = runComposeUiTest {
-        setContent { AppScreen(info, tools = null) }
+    fun `shows accounts and video tools`() = runComposeUiTest {
+        setContent { SettingsScreen(info, statuses, VideoToolsReport(readyStatuses()), { _, _ -> }, {}) }
 
-        onNodeWithText("FGC VOD Helper").assertExists()
+        onNodeWithText("Settings").assertExists()
+        onNodeWithText("Accounts").assertExists()
+        onNodeWithText("Twitch").assertExists()
+        onNodeWithText("Video tools").assertExists()
         onNodeWithText("Version 1.2.3").assertExists()
     }
 
     @Test
+    fun `back calls back`() = runComposeUiTest {
+        var calls = 0
+        setContent { SettingsScreen(info, statuses, null, { _, _ -> }, { calls++ }) }
+
+        onNodeWithText("Back").performClick()
+        assertEquals(1, calls)
+    }
+
+    @Test
     fun `shows checking while tools are checked`() = runComposeUiTest {
-        setContent { AppScreen(info, tools = null) }
+        setContent { SettingsScreen(info, statuses, null, { _, _ -> }, {}) }
 
         onNodeWithText("Checking video tools…").assertExists()
     }
 
     @Test
     fun `shows video tool versions`() = runComposeUiTest {
-        setContent { AppScreen(info, tools = VideoToolsReport(readyStatuses())) }
+        setContent { SettingsScreen(info, statuses, VideoToolsReport(readyStatuses()), { _, _ -> }, {}) }
 
         onNodeWithText("Video tools").assertExists()
         onNodeWithText("ffmpeg").assertExists()
@@ -50,7 +67,7 @@ class AppScreenTest {
     @Test
     fun `shows a missing tool`() = runComposeUiTest {
         val report = VideoToolsReport(readyStatuses() + (VideoTool.FFMPEG to ToolStatus.Missing("/x/ffmpeg")))
-        setContent { AppScreen(info, tools = report) }
+        setContent { SettingsScreen(info, statuses, report, { _, _ -> }, {}) }
 
         onNodeWithText("Missing. Reinstall the app to fix this.").assertExists()
     }

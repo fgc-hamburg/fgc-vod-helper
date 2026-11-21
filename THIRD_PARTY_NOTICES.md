@@ -26,3 +26,9 @@ FGC VOD Helper bundles the programs below, unchanged. Each keeps its own license
 
 - License: Apache 2.0 or LGPL v2.1 (dual).
 - Source: https://github.com/java-native-access/jna
+
+## java-keyring 1.0.4 (stores sign-in details in the macOS Keychain / Windows Credential Manager)
+
+- License: BSD 3-Clause.
+- Source: https://github.com/javakeyring/java-keyring
+- Comes with: jkeychain 1.1.0 (MIT), JNA Platform 5.13.0 (Apache 2.0 or LGPL v2.1), SLF4J API 2.0.7 (MIT), and, used only on Linux: secret-service 1.8.1 (MIT), dbus-java 4.2.1 (MIT), hkdf 1.1.0 (Apache 2.0).

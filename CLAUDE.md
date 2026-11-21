@@ -43,6 +43,7 @@ Every PR needs a good description built from its ticket (template: `.github/pull
 - Version: `app.version` in `gradle.properties` is the only place it's set. `-Papp.version=x.y.z` overrides it for one build. The build fails early on an invalid version.
 - `BuildConfig` (version and build-time keys) is generated into `core/build/` at build time. Never commit it.
 - Bundled video tools (ffmpeg, ffprobe, yt-dlp, VLC engine): pinned in `buildSrc/src/main/kotlin/de/fgchamburg/vodhelper/buildlogic/VideoToolPins.kt`, unpacked by `:app:prepareVideoTools`, licenses in `THIRD_PARTY_NOTICES.md`. Code finds them through `VideoToolsLayout`; steps call `VideoToolsReport.require(tool)` before using one.
+- Accounts: `core/.../accounts` (`Account`, `StoredAccount`, `AccountMessages`). Sign-in details go only through `SecretStore` (`KeyringSecretStore` = macOS Keychain / Windows Credential Manager). Non-secret settings: `settings.json` in the OS app-data folder (`AppDataDir`). Each service ticket adds its sign-in flow in `ConnectDialog`.
 - Installers: `app/build.gradle.kts` → `nativeDistributions`. The Windows `upgradeUuid` must never change.
 
 ## Build and test
