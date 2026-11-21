@@ -44,6 +44,20 @@ class AccountMessagesTest {
     }
 
     @Test
+    fun `hint says when an account is not available in this build`() {
+        assertEquals(
+            "Connect start.gg to start a project. Twitch isn't available in this build of the app.",
+            AccountMessages.startProjectHint(AccountsOverview(mapOf(AccountKind.TWITCH to AccountStatus.NotConfigured))),
+        )
+        assertEquals(
+            "Twitch isn't available in this build of the app.",
+            AccountMessages.startProjectHint(
+                AccountsOverview(mapOf(AccountKind.TWITCH to AccountStatus.NotConfigured, AccountKind.STARTGG to connected)),
+            ),
+        )
+    }
+
+    @Test
     fun `no hint when ready`() {
         val ready = AccountsOverview(mapOf(AccountKind.TWITCH to connected, AccountKind.STARTGG to connected))
         assertNull(AccountMessages.startProjectHint(ready))

@@ -2,7 +2,6 @@ package de.fgchamburg.vodhelper.app
 
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assertIsEnabled
-import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.v2.runComposeUiTest
@@ -24,19 +23,20 @@ class SetupScreenTest {
     )
 
     @Test
-    fun `continue is disabled until required accounts are connected`() = runComposeUiTest {
+    fun `setup says which accounts are needed but can be continued`() = runComposeUiTest {
         setContent { SetupScreen(none, { _, _ -> }, {}) }
 
         onNodeWithText("Welcome to FGC VOD Helper").assertExists()
         onNodeWithText("Connect your accounts to get started. You can change them later in Settings.").assertExists()
-        onNodeWithText("Continue").assertIsNotEnabled()
         onNodeWithText("Connect Twitch and start.gg to start a project.").assertExists()
+        onNodeWithText("Continue").assertIsEnabled()
     }
 
     @Test
-    fun `continue is enabled when twitch and start gg are connected`() = runComposeUiTest {
+    fun `no hint when twitch and start gg are connected`() = runComposeUiTest {
         setContent { SetupScreen(ready, { _, _ -> }, {}) }
 
+        onNodeWithText("Connect Twitch and start.gg to start a project.").assertDoesNotExist()
         onNodeWithText("Continue").assertIsEnabled()
     }
 

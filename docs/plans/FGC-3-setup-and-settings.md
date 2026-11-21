@@ -16,7 +16,7 @@
 |---|---|---|
 | 1 | On first launch, a setup screen lists Twitch (required), start.gg (required) and YouTube (optional) | `AppRootTest.first launch shows setup with all three accounts`; `AccountMessagesTest.requirement`; snapshot `01-setup-first-launch.png` |
 | 2 | Each account shows whether it is connected, with buttons to connect, reconnect or sign out | `AccountsSectionTest` (connected / not connected / not available); `StoredAccountTest`; `AppRootTest.sign out disconnects the account`; `AppRootTest.connect opens the sign-in dialog`; snapshots `01`, `02` |
-| 3 | The user can't start a project until the required accounts are connected | `AccountsOverviewTest`; `SetupScreenTest.continue is disabled until required accounts are connected`; `HomeScreenTest.new project is disabled while a required account is missing`; snapshot `04-home-missing-account.png` |
+| 3 | The user can't start a project until the required accounts are connected | `AccountsOverviewTest`; `HomeScreenTest.new project is disabled while a required account is missing`; `SetupScreenTest.setup says which accounts are needed but can be continued`; `AccountMessagesTest.hint says when an account is not available in this build`; snapshot `04-home-missing-account.png` |
 | 4 | The same screen is reachable later from settings | `AppRootTest.settings shows the accounts`; `AppRootTest.after setup the app opens on the home screen`; snapshot `05-settings.png` |
 | 5 | Sign-in details are stored safely by the computer's password store, never in project files | `StoredAccountTest.save writes only to the secret store`; `FileSettingsStoreTest.settings file holds no sign-in details`; `KeyringSecretStoreTest` (real Keychain / Credential Manager round trip, runs on both CI OSes); `Main.kt` wires `KeyringSecretStore` |
 
@@ -31,7 +31,7 @@
   - `AccountsOverview(statuses)` answers `missingRequired` and `canStartProject`. `AccountMessages` holds every user-facing string, so wording is tested in plain Kotlin.
 - **Secrets.** `SecretStore` interface (commonMain: `get`, `put`, `delete`). `KeyringSecretStore` (jvmMain) wraps java-keyring with service name `"FGC VOD Helper"` (tests use `"FGC VOD Helper (test)"`). java-keyring: macOS Keychain via jkeychain, Windows Credential Manager via JNA, BSD-3 license. Secrets never go to files or logs; exceptions from the store must not include the secret.
 - **Non-secret settings.** `AppSettings(setupDone: Boolean = false)`, `@Serializable`. `SettingsStore` interface (`load`, `save`). `FileSettingsStore(dir)` reads/writes `<dir>/settings.json`, written atomically (temp file in the same dir + `ATOMIC_MOVE`); missing or broken file → defaults. `AppDataDir.resolve(os, userHome, appDataEnv)`: macOS `~/Library/Application Support/FGC VOD Helper`, Windows `%APPDATA%\FGC VOD Helper` (fallback `<userHome>\AppData\Roaming\FGC VOD Helper` when `APPDATA` is unset).
-- **"First launch"** = `setupDone` is false. Setup's **Continue** (enabled only when `canStartProject`) sets `setupDone = true` and goes to Home. Later launches open Home. Disconnecting a required account later doesn't bring the setup back; Home disables **New project** and says what to connect, and Settings has the accounts.
+- **"First launch"** = `setupDone` is false. Setup's **Continue** sets `setupDone = true` and goes to Home. *Changed after self-review:* Continue is always enabled (originally only when `canStartProject`). Until FGC-5/6 add real sign-in nothing can be connected, so a gated Continue made every first launch a dead end with Settings unreachable. The rule "can't start a project" is enforced by Home's **New project** instead; Setup still shows the hint. Later launches open Home. Disconnecting a required account later doesn't bring the setup back; Home disables **New project** and says what to connect, and Settings has the accounts.
 - **Screens (`app`).** Navigation is a `Screen` enum (`SETUP`, `HOME`, `SETTINGS`) held in `AppRoot`.
   - `AccountsSection`: shared by Setup and Settings. One row per account: name, requirement line, status, buttons.
   - `SetupScreen`: welcome title, intro, `AccountsSection`, hint + **Continue**.
@@ -55,6 +55,7 @@
 | hint, missing 1 | `Connect start.gg to start a project.` |
 | hint, missing 2 | `Connect Twitch and start.gg to start a project.` |
 | hint, none missing | no hint (`null`) |
+| hint, required account not available in this build | `Twitch isn't available in this build of the app.` (appended after any `Connect …` sentence; added after self-review) |
 | accounts heading / loading | `Accounts` / `Checking accounts…` |
 | setup title / intro / button | `Welcome to FGC VOD Helper` / `Connect your accounts to get started. You can change them later in Settings.` / `Continue` |
 | home buttons / placeholder | `New project`, `Settings` / `Creating projects comes in a later update.` |

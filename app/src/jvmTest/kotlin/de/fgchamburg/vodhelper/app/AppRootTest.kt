@@ -13,6 +13,7 @@ import de.fgchamburg.vodhelper.core.accounts.AccountCredential
 import de.fgchamburg.vodhelper.core.accounts.AccountKind
 import de.fgchamburg.vodhelper.core.accounts.Accounts
 import de.fgchamburg.vodhelper.core.accounts.InMemorySecretStore
+import de.fgchamburg.vodhelper.core.accounts.SecretStore
 import de.fgchamburg.vodhelper.core.settings.AppSettings
 import de.fgchamburg.vodhelper.core.settings.InMemorySettingsStore
 import kotlin.test.Test
@@ -37,6 +38,20 @@ class AppRootTest {
 
     private fun ComposeUiTest.waitForStatuses() =
         waitUntil(timeoutMillis = 5_000) { onAllNodesWithText("Checking accounts…").fetchSemanticsNodes().isEmpty() }
+
+    @Test
+    fun `password store errors show accounts as not connected`() = runComposeUiTest {
+        val broken = object : SecretStore {
+            override fun get(key: String): String = error("password store locked")
+            override fun put(key: String, value: String) = error("password store locked")
+            override fun delete(key: String) = error("password store locked")
+        }
+        val brokenAccounts = Accounts.create(info, broken)
+        setContent { AppRoot(info, tools = null, accounts = brokenAccounts, settings = settings) }
+        waitForStatuses()
+
+        onAllNodesWithText("Not connected").assertCountEquals(3)
+    }
 
     @Test
     fun `first launch shows setup with all three accounts`() = runComposeUiTest {
@@ -77,6 +92,7 @@ class AppRootTest {
         onNodeWithText("Continue").performClick()
 
         onNodeWithText("New project").assertExists()
+        waitUntil(timeoutMillis = 5_000) { settings.current.setupDone }
         assertTrue(settings.current.setupDone)
     }
 

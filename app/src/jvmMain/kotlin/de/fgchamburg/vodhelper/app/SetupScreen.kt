@@ -35,6 +35,7 @@ fun SetupScreen(
         )
         AccountsSection(statuses, onAction)
         overview?.let(AccountMessages::startProjectHint)?.let { Text(it, style = MaterialTheme.typography.bodyMedium) }
-        Button(onClick = onContinue, enabled = overview?.canStartProject == true) { Text("Continue") }
+        // Always possible: Home keeps New project disabled until the required accounts are connected.
+        Button(onClick = onContinue) { Text("Continue") }
     }
 }

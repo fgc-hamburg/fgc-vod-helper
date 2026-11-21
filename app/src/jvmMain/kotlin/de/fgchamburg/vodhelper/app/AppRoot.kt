@@ -32,16 +32,19 @@ fun AppRoot(info: AppInfo, tools: VideoToolsReport?, accounts: List<Account>, se
     var notice by remember { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
 
-    // Keychain reads can block, so they stay off the UI thread.
+    // Keychain reads can block, so they stay off the UI thread. A password store that can't be
+    // read (locked, access refused) shows the account as not connected instead of crashing.
     LaunchedEffect(refreshCount) {
-        statuses = withContext(Dispatchers.IO) { accounts.associate { it.kind to it.status() } }
+        statuses = withContext(Dispatchers.IO) {
+            accounts.associate { it.kind to (runCatching { it.status() }.getOrNull() ?: AccountStatus.NotConnected) }
+        }
     }
 
     val onAction: (AccountKind, AccountAction) -> Unit = { kind, action ->
         when (action) {
             AccountAction.CONNECT, AccountAction.RECONNECT -> connecting = kind
             AccountAction.SIGN_OUT -> scope.launch {
-                withContext(Dispatchers.IO) { accounts.first { it.kind == kind }.signOut() }
+                withContext(Dispatchers.IO) { runCatching { accounts.first { it.kind == kind }.signOut() } }
                 refreshCount++
             }
         }
@@ -53,15 +56,19 @@ fun AppRoot(info: AppInfo, tools: VideoToolsReport?, accounts: List<Account>, se
                 statuses,
                 onAction,
                 onContinue = {
-                    settings.save(settings.load().copy(setupDone = true))
                     screen = Screen.HOME
+                    // If the settings file can't be written, setup simply shows again next launch.
+                    scope.launch { withContext(Dispatchers.IO) { runCatching { settings.save(settings.load().copy(setupDone = true)) } } }
                 },
             )
             Screen.HOME -> HomeScreen(
                 info,
                 statuses,
                 onNewProject = { notice = NEW_PROJECT_NOTICE },
-                onOpenSettings = { screen = Screen.SETTINGS },
+                onOpenSettings = {
+                    notice = null
+                    screen = Screen.SETTINGS
+                },
                 notice = notice,
             )
             Screen.SETTINGS -> SettingsScreen(info, statuses, tools, onAction, onBack = { screen = Screen.HOME })
