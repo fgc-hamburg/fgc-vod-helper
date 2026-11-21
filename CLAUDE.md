@@ -1,6 +1,6 @@
 # FGC VOD Helper
 
-Desktop app (macOS + Windows) that turns our Twitch tournament VODs into one YouTube-ready video with match chapters. Kotlin, Compose for Desktop (Compose Multiplatform), JVM 21.
+Desktop app (macOS + Windows) that turns our Twitch tournament VODs into one YouTube-ready video with match chapters. Kotlin Multiplatform (one target: the desktop JVM 21), Compose for Desktop.
 
 ## Where things are decided
 
@@ -36,8 +36,9 @@ Every PR needs a good description built from its ticket (template: `.github/pull
 
 ## Code layout
 
-- `core/` — app logic in plain Kotlin, no UI imports. Unit-tested directly. Package `de.fgchamburg.vodhelper.core`.
-- `app/` — the Compose Desktop window, screens and installer settings. Depends on `core`. Package `de.fgchamburg.vodhelper.app`.
+- Both modules are Kotlin Multiplatform with a single `jvm()` target.
+- `core/` — app logic in plain Kotlin, no UI imports. Unit-tested directly. Package `de.fgchamburg.vodhelper.core`. Logic and its tests go in `src/commonMain` / `src/commonTest`; code that needs the JVM (files, processes, system properties) goes in `src/jvmMain` / `src/jvmTest`.
+- `app/` — the Compose Desktop window, screens and installer settings, in `src/jvmMain` / `src/jvmTest`. Depends on `core`. Package `de.fgchamburg.vodhelper.app`.
 - Version: `app.version` in `gradle.properties` is the only place it's set. `-Papp.version=x.y.z` overrides it for one build. The build fails early on an invalid version.
 - `BuildConfig` (version and build-time keys) is generated into `core/build/` at build time. Never commit it.
 - Installers: `app/build.gradle.kts` → `nativeDistributions`. The Windows `upgradeUuid` must never change.

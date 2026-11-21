@@ -55,8 +55,8 @@ run: ## Run the app locally
 check: ## Compile, test and lint — what CI runs, must pass before a PR
 	$(GRADLE) check --stacktrace
 
-test: ## Run unit tests only
-	$(GRADLE) test
+test: ## Run unit tests only (all modules)
+	$(GRADLE) allTests
 
 build: ## Compile the app without packaging
 	$(GRADLE) assemble

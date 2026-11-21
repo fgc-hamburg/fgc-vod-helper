@@ -8,7 +8,7 @@
 
 **Spec:** `docs/superpowers/specs/2026-11-21-vod-helper-v1-design.md` (sections "Releases", "Constraints", "Parts → Packaging").
 
-**Tech stack:** Gradle 9.3.0 (wrapper, version catalog), Kotlin 2.4.21 (JVM), Compose Multiplatform 1.12.2, JDK 21, JUnit via `kotlin("test")`, Compose desktop UI tests.
+**Tech stack:** Gradle 9.3.0 (wrapper, version catalog), Kotlin 2.4.21 (Kotlin Multiplatform, single `jvm()` target), Compose Multiplatform 1.12.2, JDK 21, JUnit via `kotlin("test")`, Compose desktop UI tests.
 
 ## Acceptance checks
 
@@ -26,7 +26,7 @@
 - **Two modules** so logic never depends on UI (CLAUDE.md rule):
   - `core` — plain Kotlin/JVM, no Compose. Holds `AppInfo` (name, version, key status). Later tickets add timeline, project store, etc. here.
   - `app` — Compose Desktop: window, screens, packaging. Depends on `core`.
-  - KMP with a single `jvm("desktop")` target isn't needed yet; plain `kotlin("jvm")` keeps the build simple. Compose Multiplatform works with the JVM plugin for desktop. Switch to KMP only if a non-JVM target appears.
+  - Both modules use Kotlin Multiplatform with a single `jvm()` target, as the design says. (First built with plain `kotlin("jvm")`; switched to KMP at review, on the user's call.) `core`: shared logic in `commonMain`/`commonTest`, JVM-only code (files, processes, `System` properties) in `jvmMain`/`jvmTest`. `app`: everything in `jvmMain`/`jvmTest`. Unit tests run with `allTests` (KMP has no plain `test` task), which `make test` wraps.
 - **Single version source:** `gradle.properties` → `app.version=1.0.0`. Overridable with `-Papp.version=x.y.z` (used by `make package` / release workflow). Validated in the build: must match `^[1-9]\d*\.\d+\.\d+$` (macOS installer rule), build fails otherwise.
 - **Generated `BuildConfig`** (small Gradle task in `core`, no plugin): `VERSION`, `TWITCH_CLIENT_ID`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, read from Gradle property or environment variable, defaulting to `""`. Generated into `build/`, never committed. Build passes without keys.
 - **Packaging:** `nativeDistributions { targetFormats(Dmg, Msi) }`, `packageName = "FGC VOD Helper"`, `packageVersion = app.version`, macOS `bundleID = "de.fgchamburg.vodhelper"`, Windows fixed `upgradeUuid`, `perUserInstall = true` (no admin rights; keeps a future self-updater simple), `menuGroup = "FGC Hamburg"`. Makefile renames output to `fgc-vod-helper-<v>.<ext>`.
@@ -37,7 +37,7 @@
 
 ### Task 1: Gradle skeleton + `core` with `AppInfo`
 
-Files: `settings.gradle.kts`, `build.gradle.kts`, `gradle.properties`, `gradle/libs.versions.toml`, wrapper files, `core/build.gradle.kts`, `core/src/main/kotlin/de/fgchamburg/vodhelper/core/AppInfo.kt`, `core/src/test/kotlin/.../AppInfoTest.kt`, `core/src/test/kotlin/.../BuildConfigTest.kt`.
+Files: `settings.gradle.kts`, `build.gradle.kts`, `gradle.properties`, `gradle/libs.versions.toml`, wrapper files, `core/build.gradle.kts`, `core/src/commonMain/kotlin/de/fgchamburg/vodhelper/core/AppInfo.kt`, `core/src/commonTest/kotlin/.../AppInfoTest.kt`, `core/src/jvmTest/kotlin/.../BuildConfigTest.kt`.
 
 Interfaces (produced):
 - `object BuildConfig { const val VERSION: String; const val TWITCH_CLIENT_ID: String; const val GOOGLE_CLIENT_ID: String; const val GOOGLE_CLIENT_SECRET: String }` (generated, package `de.fgchamburg.vodhelper.core`)
@@ -50,7 +50,7 @@ Interfaces (produced):
 
 ### Task 2: `app` module — window showing name and version
 
-Files: `app/build.gradle.kts`, `app/src/main/kotlin/de/fgchamburg/vodhelper/app/Main.kt`, `.../app/AppScreen.kt`, `app/src/test/kotlin/.../AppScreenTest.kt`.
+Files: `app/build.gradle.kts`, `app/src/jvmMain/kotlin/de/fgchamburg/vodhelper/app/Main.kt`, `.../app/AppScreen.kt`, `app/src/jvmTest/kotlin/.../AppScreenTest.kt`.
 
 Interfaces: `@Composable fun AppScreen(info: AppInfo)`; `fun main()` opens `Window(title = "${info.name} ${info.version}")` with `AppScreen(AppInfo.fromBuildConfig())`.
 

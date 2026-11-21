@@ -1,14 +1,19 @@
 // Plain Kotlin, no UI. App logic lives here so it can be unit-tested directly.
+// Kotlin Multiplatform with one target (the JVM): shared logic goes in commonMain,
+// code that needs the JVM (files, processes) in jvmMain.
 plugins {
-    alias(libs.plugins.kotlin.jvm)
+    alias(libs.plugins.kotlin.multiplatform)
 }
 
 kotlin {
     jvmToolchain(21)
-}
+    jvm()
 
-dependencies {
-    testImplementation(kotlin("test"))
+    sourceSets {
+        commonTest.dependencies {
+            implementation(kotlin("test"))
+        }
+    }
 }
 
 /** Writes BuildConfig.kt: the app version and build-time keys. Never committed. */
@@ -51,10 +56,10 @@ val generateBuildConfig by tasks.registering(GenerateBuildConfig::class) {
     outputDir.set(layout.buildDirectory.dir("generated/buildconfig"))
 }
 
-sourceSets.main {
+kotlin.sourceSets.commonMain {
     kotlin.srcDir(generateBuildConfig.map { it.outputDir })
 }
 
-tasks.test {
+tasks.named<Test>("jvmTest") {
     systemProperty("app.version", project.version.toString())
 }

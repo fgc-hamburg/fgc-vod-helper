@@ -1,22 +1,27 @@
 import org.jetbrains.compose.desktop.application.dsl.TargetFormat
 
 plugins {
-    alias(libs.plugins.kotlin.jvm)
+    alias(libs.plugins.kotlin.multiplatform)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.compose)
 }
 
+// Kotlin Multiplatform with one target: the desktop JVM (macOS and Windows).
 kotlin {
     jvmToolchain(21)
-}
+    jvm()
 
-dependencies {
-    implementation(project(":core"))
-    implementation(compose.desktop.currentOs)
-    implementation(compose.material3)
-
-    testImplementation(kotlin("test"))
-    testImplementation(compose.desktop.uiTestJUnit4)
+    sourceSets {
+        jvmMain.dependencies {
+            implementation(project(":core"))
+            implementation(compose.desktop.currentOs)
+            implementation(compose.material3)
+        }
+        jvmTest.dependencies {
+            implementation(kotlin("test"))
+            implementation(compose.desktop.uiTestJUnit4)
+        }
+    }
 }
 
 compose.desktop {
