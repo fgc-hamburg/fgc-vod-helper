@@ -21,6 +21,26 @@ Requirements: JDK 21 and `make`. On Windows, run `make` from Git Bash.
 
 Run `make` to see every command.
 
+## Twitch sign-in
+
+The app signs in to Twitch with a Client ID. It has no secret. Set it up once for the whole team:
+
+1. Go to [dev.twitch.tv/console](https://dev.twitch.tv/console) and click Register Your Application.
+2. Set the OAuth Redirect URL to `http://localhost`. Set the category to Application Integration.
+3. Set Client Type to **Public**. You cannot change this later.
+4. Create the app, then copy the Client ID. The account that owns the app needs two-factor sign-in turned on.
+
+Put the Client ID in two places:
+
+- Your local `.env`: run `make setup`, then fill in `TWITCH_CLIENT_ID`.
+- Releases: add a GitHub Actions secret named `TWITCH_CLIENT_ID`.
+
+To sign in, the app shows a short code. It opens twitch.tv in your browser, where you type the code and approve the app. The app asks only for `user:read:broadcast`. That lets it read the channel's past broadcasts, and nothing more.
+
+If the build has no Client ID, the Twitch row in Setup says "Not available in this build of the app". The rest of the app still works.
+
+The full step-by-step guide is in Linear: [Setup: Register the Twitch app](https://linear.app/xunfosechunfos/document/setup-register-the-twitch-app-37eb7504fd7e).
+
 ## Bundled video tools
 
 The app ships with the video tools it needs, so nobody has to install them:
