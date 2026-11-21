@@ -10,6 +10,9 @@ kotlin {
     jvm()
 
     sourceSets {
+        jvmMain.dependencies {
+            implementation(libs.jna)
+        }
         commonTest.dependencies {
             implementation(kotlin("test"))
         }
