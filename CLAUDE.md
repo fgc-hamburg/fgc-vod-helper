@@ -17,13 +17,41 @@ Always use the `implement-ticket` skill (`/implement-ticket FGC-<n>`). It covers
 - Ticket plans live in `docs/plans/FGC-<n>-<slug>.md` and are committed with the work.
 - Write and update tickets with the `writing-tickets` skill.
 
+## Pull requests
+
+Every PR needs a good description built from its ticket (template: `.github/pull_request_template.md`):
+
+- **Why:** the ticket's Context in one or two sentences.
+- **What changed:** plain-language bullets a teammate who doesn't code can follow.
+- **Acceptance checks:** every Scope bullet, ticked, with how it was verified.
+
+**If the PR changes how the app looks or how the user moves through it** (new or changed screens, layout, controls, steps, wording):
+
+- The whole description is jargon-free. No class names, library names or code terms outside the "Technical notes" section.
+- Every UI change gets its own entry under **UI changes** with:
+  - a screenshot for something that looks different, or a short video/GIF (under ~20 s) for something that moves or has steps;
+  - before and after, when an existing screen changed;
+  - one or two sentences telling the reviewer what to look at and what to judge ("Check the Connect buttons are clear about which accounts are required").
+- Media goes on the `pr-media` branch, never on the feature branch (see `implement-ticket` skill, step 7).
+
 ## Build and test
 
-- `./gradlew check` — compile, unit tests, lint. Must pass before opening a PR. CI runs the same on macOS and Windows.
-- `./gradlew run` — run the app locally.
-- Build-time secrets come from Gradle properties or environment: `TWITCH_CLIENT_ID`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`. Never commit them. The build and tests must work without them (features needing them show "not configured").
+**Every action goes through the `Makefile`.** Run `make` to list targets. CI and release workflows call the same targets. When you add a new repeatable action (a script, a Gradle task people need, a tool setup), add a `make` target for it with a `## description`, and use that target in docs and workflows instead of the raw command.
 
-(FGC-1 creates the Gradle project; update this section if commands change.)
+| Action | Command |
+|---|---|
+| Create your local `.env` for keys (first time, or after new keys are added) | `make setup` |
+| Run the app | `make run` |
+| Compile, test, lint (what CI runs; must pass before a PR) | `make check` |
+| Unit tests only | `make test` |
+| Build this OS's installer into `dist/` | `make package VERSION=1.2.3` |
+| Release (tag `main`, CI builds installers and publishes the GitHub Release) | `make release VERSION=1.2.3` |
+| Worktree for a ticket | `make worktree TICKET=FGC-1 BRANCH=<Linear branch name>` |
+| Upload PR screenshots/GIFs | `make pr-media TICKET=FGC-1` |
+
+- Versions are `x.y.z` with `x` ≥ 1 (macOS installers require it). The Gradle build reads the version from `-Papp.version`.
+- Build-time keys: `TWITCH_CLIENT_ID`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`. Locally they live in `.env` (git-ignored, created by `make setup` from `.env.example`); the Makefile exports them to every command, so Gradle reads them from the environment. Never commit them. When you add a key, add it to `.env.example` with a comment on where to get it. The build and tests must work without them (features needing them show "not configured"). Release builds get them from GitHub Actions secrets.
+- `main` is protected: changes land only through a PR with green CI.
 
 ## Code rules
 
