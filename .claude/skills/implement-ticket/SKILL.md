@@ -20,7 +20,7 @@ Input: the ticket ID (e.g. `FGC-4`). If none was given, ask for it.
 
 ## 2. Workspace
 
-1. `git fetch origin` and create a worktree from `origin/main` on the ticket's `gitBranchName` (from `get_issue`). Use `superpowers:using-git-worktrees`.
+1. Create the worktree with `make worktree TICKET=FGC-<n> BRANCH=<gitBranchName from get_issue>` (branches from `origin/main` into `.worktrees/FGC-<n>`), then work inside it.
 2. If the design spec isn't on `main` yet (first ticket only), commit it as the first commit on the branch.
 
 ## 3. Spec the ticket
@@ -41,36 +41,69 @@ Commit the plan on its own (`FGC-<n>: plan`).
 - Keep `CLAUDE.md` code rules: logic outside the UI, services behind interfaces with fakes, determinism, atomic writes, no secrets in files.
 - If the work grows beyond Scope, stop, note it in the plan's Out of scope, and suggest a follow-up ticket (written with `writing-tickets`) instead of building it.
 - Update `CLAUDE.md` / README when a command, convention, or setup step changes.
+- New repeatable action (script, tool, Gradle task people run)? Add a `make` target with a `## description` and use it everywhere instead of the raw command.
 
 ## 5. Verify locally
 
 Use `superpowers:verification-before-completion`. All must pass, with output seen:
 
-- `./gradlew check`
-- `./gradlew run` for anything the user sees: walk through each UI acceptance check and note the result.
+- `make check`
+- `make run` for anything the user sees: walk through each UI acceptance check and note the result.
 - Every acceptance check in the plan is ticked or explicitly marked as not verified with a reason.
 
 ## 6. Self-review
 
 1. Run the `code-review` skill at `medium` on the branch diff against `origin/main`.
-2. Fix confirmed findings. Re-run `./gradlew check`.
+2. Fix confirmed findings. Re-run `make check`.
 3. Findings left unfixed go in the PR body with the reason.
 
 ## 7. Open the PR
+
+### 7a. Capture UI changes (only if the app looks or flows differently)
+
+List each UI change: every new or changed screen, control, step, or piece of wording. For each:
+
+- **Looks different** → screenshot of the app window. Before + after if the screen existed on `main` (build `main` in a second worktree for the "before").
+- **Moves or has steps** → short screen recording (under ~20 s), converted to GIF so it plays inline on GitHub.
+
+Capturing (macOS), with the app running via `make run`:
+
+```bash
+make screenshot TICKET=FGC-<n> NAME=01-setup-screen      # click the app window when prompted
+make record TICKET=FGC-<n> NAME=02-connect-flow SECONDS=15  # records the screen, saves a GIF
+```
+
+Name files in the order the reviewer should see them (`01-…`, `02-…`).
+
+If you can't capture (no display, permission denied), say so in the PR and to the user. Never skip silently.
+
+Upload to the `pr-media` branch (orphan branch, keeps media out of the code history):
+
+```bash
+make pr-media TICKET=FGC-<n>
+```
+
+It prints one Markdown image link per file. Paste them into the PR, replacing the alt text with what each shows. `media/` is git-ignored; never commit it on the feature branch.
+
+### 7b. Write the description and open the PR
+
+Write the body from the ticket, following `.github/pull_request_template.md` and the "Pull requests" rules in `CLAUDE.md`:
+
+- **Ticket:** `Fixes FGC-<n>`
+- **Why:** the ticket's Context, one or two sentences
+- **What changed:** 2–5 plain-language bullets
+- **UI changes:** one entry per change from 7a — media + "What to look at". "None" if nothing user-visible changed
+- **Acceptance checks:** the plan's checklist, ticked, with how each was verified
+- **Manual checks:** what was run in the app, on which OS
+- **Review:** self-review summary and anything left open
+- **Technical notes:** the only section allowed to use code terms; link the plan
+
+Before opening, reread every section except Technical notes as a teammate who doesn't code. Replace any jargon.
 
 ```bash
 git push -u origin HEAD
 gh pr create --base main --title "FGC-<n>: <ticket title>" --body-file <tmp body file>
 ```
-
-Body (follows `.github/pull_request_template.md`):
-
-- **Ticket:** `Fixes FGC-<n>` + link
-- **What changed:** 2–5 plain-language bullets
-- **Acceptance checks:** the plan's checklist, ticked, with how each was verified
-- **Manual checks:** what was run in the app, on which OS
-- **Review:** summary of the self-review and anything left open
-- **Plan:** path to `docs/plans/FGC-<n>-<slug>.md`
 
 ## 8. CI
 
