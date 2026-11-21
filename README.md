@@ -31,7 +31,7 @@ The app ships with the video tools it needs, so nobody has to install them:
 
 The build downloads them once (cached in the Gradle user home) and checks their checksums. The versions, URLs and checksums are pinned in `buildSrc/src/main/kotlin/de/fgchamburg/vodhelper/buildlogic/VideoToolPins.kt`. `make check` downloads the tools once (cached) and runs them in a test; `make test` stays offline and never downloads. Installers bundle the tools for the OS and CPU of the machine that builds them.
 
-To bump a tool: change its version, URL and sha256 in `VideoToolPins.kt`, update `THIRD_PARTY_NOTICES.md`, then run `make check` and `make package && make verify-package`. `make verify-package` runs the packaged app with `--check-tools` and prints whether each tool is ready (no window opens). CI runs it for every installer.
+To bump a tool: change its version, URL and sha256 in `VideoToolPins.kt`, update `THIRD_PARTY_NOTICES.md`, then run `make check` and `make package && make verify-package`. `make verify-package` builds the app folder that goes into the installer and runs it with `--check-tools` and prints whether each tool is ready (no window opens). CI runs it for every installer.
 
 On macOS, the first check after installing can take about 25 seconds while the system checks the new files.
 

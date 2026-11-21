@@ -1,8 +1,14 @@
 package de.fgchamburg.vodhelper.buildlogic
 
-data class PinnedDownload(val url: String, val sha256: String) {
+/** [mirror] is tried when [url] fails; the checksum makes any source safe to use. */
+data class PinnedDownload(val url: String, val sha256: String, val mirror: String? = null) {
     val fileName: String get() = url.substringAfterLast('/')
+    val urls: List<String> get() = listOfNotNull(url, mirror)
 }
+
+// VideoLAN's redirector to its mirror network, a fallback when download.videolan.org is unreachable.
+private fun withVideoLanMirror(pin: PinnedDownload) =
+    pin.copy(mirror = pin.url.replace("https://download.videolan.org/pub/videolan/vlc/", "https://get.videolan.org/vlc/"))
 
 /** The only place tool versions are set. Bumping a tool: change version + URL + sha256 here, update THIRD_PARTY_NOTICES.md. */
 object VideoToolPins {
@@ -26,7 +32,9 @@ object VideoToolPins {
         PinnedDownload("https://github.com/yt-dlp/yt-dlp/releases/download/$YT_DLP_VERSION/yt-dlp_macos.zip", "20d98fa608998eff87d1d35a6e9fb65e4b874639a6cc89addc19da3becde3ef1")
     }
 
-    fun vlc(p: ToolPlatform) = when (p) {
+    fun vlc(p: ToolPlatform) = withVideoLanMirror(vlcPrimary(p))
+
+    private fun vlcPrimary(p: ToolPlatform) = when (p) {
         ToolPlatform.MACOS_ARM64 -> PinnedDownload("https://download.videolan.org/pub/videolan/vlc/$VLC_VERSION/macosx/vlc-$VLC_VERSION-arm64.dmg", "64a89d93cdd30b0e97131743e246373db82d6826ea882d265d46d74b136da2b7")
         ToolPlatform.MACOS_X64 -> PinnedDownload("https://download.videolan.org/pub/videolan/vlc/$VLC_VERSION/macosx/vlc-$VLC_VERSION-intel64.dmg", "1ef6c903e2dc026d4e58ddf7b2a9ed0eb6f8caf80a9a9f46f96490340b962707")
         ToolPlatform.WINDOWS_X64 -> PinnedDownload("https://download.videolan.org/pub/videolan/vlc/$VLC_VERSION/win64/vlc-$VLC_VERSION-win64.zip", "fcf30850371ad10c9373cc4f0f4501e7dee49e3e9ae9f20c72fb2661a1ca6323")

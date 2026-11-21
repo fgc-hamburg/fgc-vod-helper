@@ -87,27 +87,45 @@ abstract class PrepareVideoTools : DefaultTask() {
     private fun download(pin: PinnedDownload, cache: File): File {
         val target = File(cache, pin.fileName)
         if (target.exists() && sha256Hex(target) == pin.sha256) return target
-        logger.lifecycle("Downloading ${pin.url}")
-        // A unique temp file, so concurrent builds never write the same file.
+        // Servers and CI networks fail now and then: try each source a few times before giving up.
+        val failures = mutableListOf<String>()
+        for (url in pin.urls) {
+            for (attempt in 1..DOWNLOAD_ATTEMPTS) {
+                try {
+                    logger.lifecycle("Downloading $url" + if (attempt > 1) " (attempt $attempt)" else "")
+                    downloadOnce(url, pin, cache, target)
+                    return target
+                } catch (e: java.io.IOException) {
+                    failures += "$url: ${e.message}"
+                    if (attempt < DOWNLOAD_ATTEMPTS) Thread.sleep(attempt * 5_000L)
+                }
+            }
+        }
+        throw GradleException("Couldn't download ${pin.fileName}:\n" + failures.joinToString("\n"))
+    }
+
+    /** Downloads [url] into [target] via a unique temp file, so concurrent builds never write the same file. */
+    private fun downloadOnce(url: String, pin: PinnedDownload, cache: File, target: File) {
         val part = File.createTempFile(pin.fileName + ".", ".part", cache)
         try {
-            val connection = URI(pin.url).toURL().openConnection().apply {
+            val connection = URI(url).toURL().openConnection().apply {
                 connectTimeout = 30_000
                 readTimeout = 60_000
             }
             connection.getInputStream().use { input -> part.outputStream().use { input.copyTo(it) } }
-            verifySha256(part, pin.sha256) // deletes the temp file on mismatch
+            verifySha256(part, pin.sha256) // deletes the temp file and fails the build on mismatch
             try {
                 Files.move(part.toPath(), target.toPath(), StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE)
             } catch (e: AtomicMoveNotSupportedException) {
                 Files.move(part.toPath(), target.toPath(), StandardCopyOption.REPLACE_EXISTING)
             }
-        } catch (e: java.io.IOException) {
-            throw GradleException("Couldn't download ${pin.url}: ${e.message}", e)
         } finally {
             part.delete()
         }
-        return target
+    }
+
+    private companion object {
+        const val DOWNLOAD_ATTEMPTS = 3
     }
 
     private fun unpackFfmpeg(jar: File, p: ToolPlatform, dir: File) {

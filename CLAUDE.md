@@ -56,7 +56,7 @@ Every PR needs a good description built from its ticket (template: `.github/pull
 | Compile, test, lint (what CI runs; must pass before a PR) | `make check` |
 | Unit tests only | `make test` |
 | Build this OS's installer into `dist/` (version from `gradle.properties`, or `VERSION=1.2.3`) | `make package` |
-| Check the packaged app finds and runs its bundled video tools (after `make package`) | `make verify-package` |
+| Build the app folder (as in the installer) and check it finds and runs its bundled video tools | `make verify-package` |
 | Release `app.version` (or `VERSION=1.2.3`): tags `main`, CI builds installers and publishes the GitHub Release | `make release` |
 | Worktree for a ticket | `make worktree TICKET=FGC-1 BRANCH=<Linear branch name>` |
 | Render the app's screens to PNGs in `media/<TICKET>/` (in tests, no real screen) | `make ui-snapshots TICKET=FGC-1` |

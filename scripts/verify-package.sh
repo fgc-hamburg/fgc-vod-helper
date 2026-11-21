@@ -21,9 +21,11 @@ echo "Running packaged app: $launcher --check-tools"
 # The Windows launcher is a GUI exe with no stdout, so the app also writes its summary to a file.
 report="$(mktemp)"
 set +e
-"$launcher" --check-tools --check-tools-report="$report"
+output="$("$launcher" --check-tools --check-tools-report="$report" 2>&1)"
 code=$?
 set -e
-[ -f "$report" ] && cat "$report"
+# Prefer the report; fall back to whatever the app printed (e.g. a crash before the report was written).
+if [ -s "$report" ]; then cat "$report"; else printf '%s\n' "$output"; fi
 rm -f "$report"
+echo "Exit code: $code"
 exit "$code"

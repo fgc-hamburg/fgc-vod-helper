@@ -44,6 +44,25 @@ val prepareVideoTools by tasks.registering(PrepareVideoTools::class) {
 
 tasks.matching { it.name == "prepareAppResources" }.configureEach { dependsOn(prepareVideoTools) }
 
+// jpackage drops the executable bit when it copies app resources into the macOS app, so the bundled
+// programs couldn't start. Put it back on the app folder that the .dmg is made from.
+val macExecutables = listOf("ffmpeg/ffmpeg", "ffmpeg/ffprobe", "yt-dlp/yt-dlp_macos")
+val appImageDir = layout.buildDirectory.dir("compose/binaries/main/app")
+tasks.matching { it.name == "createDistributable" }.configureEach {
+    val isMac = toolPlatform?.isWindows == false
+    val imageDir = appImageDir
+    val executables = macExecutables // locals only, so the action doesn't capture the script
+    doLast {
+        if (!isMac) return@doLast
+        val resources = imageDir.get().asFile.listFiles { f -> f.name.endsWith(".app") }.orEmpty()
+            .map { File(it, "Contents/app/resources") }
+            .singleOrNull() ?: throw GradleException("Expected one .app in ${imageDir.get().asFile}")
+        executables.map { File(resources, it) }.forEach { tool ->
+            if (!tool.isFile || !tool.setExecutable(true, false)) throw GradleException("Couldn't make $tool executable")
+        }
+    }
+}
+
 // Unit tests stay offline. `make ui-snapshots` passes -Pui.snapshots.dir and gets the real tools to render.
 val snapshotsDir: String? = providers.gradleProperty("ui.snapshots.dir").orNull
 val videoToolsProps: Map<String, String> = toolPlatform?.let { p ->

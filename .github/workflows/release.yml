@@ -28,6 +28,12 @@ jobs:
 
       - uses: gradle/actions/setup-gradle@v4
 
+      - name: Cache bundled video tools
+        uses: actions/cache@v4
+        with:
+          path: ~/.gradle/caches/fgc-vod-helper/video-tools
+          key: video-tools-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('buildSrc/src/main/kotlin/**/VideoToolPins.kt') }}
+
       - name: Install make (Windows)
         if: runner.os == 'Windows'
         run: |
@@ -42,7 +48,7 @@ jobs:
         run: make package VERSION="${GITHUB_REF_NAME#v}"
 
       - name: Check bundled video tools
-        run: make verify-package
+        run: make verify-package VERSION="${GITHUB_REF_NAME#v}"
 
       - uses: actions/upload-artifact@v4
         with:

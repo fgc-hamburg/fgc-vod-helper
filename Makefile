@@ -78,7 +78,8 @@ package: ## Build this OS's installer into a fresh dist/ — make package [VERSI
 		[ $$n -eq 1 ] || { echo "Expected 1 installer in $(BINARIES), found $$n"; exit 1; }
 	@ls -1 $(DIST)
 
-verify-package: ## Check the packaged app finds and runs its bundled video tools (after make package)
+verify-package: ## Build the app folder and check it finds and runs its bundled video tools — make verify-package [VERSION=1.2.3]
+	$(GRADLE) createDistributable -Papp.version=$(VERSION)
 	@bash scripts/verify-package.sh
 
 version: ## Print the latest release tag
