@@ -11,6 +11,10 @@ import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.application
 import androidx.compose.ui.window.rememberWindowState
 import de.fgchamburg.vodhelper.core.AppInfo
+import de.fgchamburg.vodhelper.core.accounts.Accounts
+import de.fgchamburg.vodhelper.core.accounts.KeyringSecretStore
+import de.fgchamburg.vodhelper.core.settings.AppDataDir
+import de.fgchamburg.vodhelper.core.settings.FileSettingsStore
 import de.fgchamburg.vodhelper.core.tools.VideoToolsChecker
 import de.fgchamburg.vodhelper.core.tools.VideoToolsLayout
 import de.fgchamburg.vodhelper.core.tools.VideoToolsReport
@@ -25,6 +29,8 @@ fun main(args: Array<String>) {
     if (CHECK_TOOLS_FLAG in args) exitProcess(runCheckTools(checkTools(), checkToolsReportPath(args), ::println))
 
     val info = AppInfo.fromBuildConfig()
+    val accounts = Accounts.create(info, KeyringSecretStore())
+    val settings = FileSettingsStore(AppDataDir.current())
     application {
         var tools by remember { mutableStateOf<VideoToolsReport?>(null) }
         LaunchedEffect(Unit) { tools = withContext(Dispatchers.IO) { checkTools() } }
@@ -33,10 +39,7 @@ fun main(args: Array<String>) {
             title = "${info.name} ${info.version}",
             state = rememberWindowState(size = DpSize(1100.dp, 720.dp)),
         ) {
-            AppTheme {
-                // Temporary until AppRoot (FGC-3 task 4) wires accounts and navigation.
-                HomeScreen(info, statuses = null, onNewProject = {}, onOpenSettings = {}, notice = null)
-            }
+            AppRoot(info, tools, accounts, settings)
         }
     }
 }
