@@ -8,6 +8,16 @@ argument-hint: FGC-<n>
 
 Takes one Linear ticket from Backlog to an open, green, self-reviewed PR. A human merges.
 
+## Who does what
+
+| Work | Who |
+|---|---|
+| Reading the ticket, planning (steps 1–3), reviewing each task, self-review, PR description, CI fixes that need judgment (steps 6–9) | **You** (the main session) |
+| Building each plan task (step 4) | A **Sonnet** subagent per task |
+| Purely mechanical tasks (renames, moving files, doc wording from an exact outline) | A **Haiku** subagent |
+
+The plan carries the decisions, so building from it is rote work for a cheaper model. If the plan is too vague for a cheaper model to follow, fix the plan; don't do the task yourself.
+
 Input: the ticket ID (e.g. `FGC-4`). If none was given, ask for it.
 
 ## 1. Read and check
@@ -25,7 +35,7 @@ Input: the ticket ID (e.g. `FGC-4`). If none was given, ask for it.
 
 ## 3. Spec the ticket
 
-Write `docs/plans/FGC-<n>-<slug>.md` with `superpowers:writing-plans`. It must contain, in order:
+Write `docs/plans/FGC-<n>-<slug>.md` with `superpowers:writing-plans`. A cheaper model will build each task from it, so every task names its exact files, signatures, test names and values. It must contain, in order:
 
 1. **Ticket:** ID, title, link.
 2. **Acceptance checks:** each Scope bullet rewritten as a check, and how it's verified (test name, or manual step for UI-only).
@@ -37,8 +47,28 @@ Commit the plan on its own (`FGC-<n>: plan`).
 
 ## 4. Build
 
-- Follow the plan with `superpowers:test-driven-development`: failing test, make it pass, commit. Small commits, each prefixed `FGC-<n>:`.
-- Keep `CLAUDE.md` code rules: logic outside the UI, services behind interfaces with fakes, determinism, atomic writes, no secrets in files.
+Each task in the plan goes to its own subagent, one after another (they share the worktree, so never in parallel).
+
+### 4a. Dispatch a task
+
+Use the Agent tool with `subagent_type: "general-purpose"` and `model: "sonnet"` (`"haiku"` for purely mechanical tasks). The prompt is self-contained; the subagent has none of your context. It contains, in order:
+
+1. **Where:** the absolute worktree path. "Work only inside it. Don't touch other worktrees or `main`."
+2. **What:** the plan path and the task number. "Read `CLAUDE.md`, the plan's header sections, and Task N. Do only Task N."
+3. **Done when:** the task's steps and checks, and that `make check` passes.
+4. **How:** test-first (`superpowers:test-driven-development`); follow `CLAUDE.md` code rules; small commits prefixed `FGC-<n>:` ending with the `Co-Authored-By` line for the subagent's own model (e.g. `Claude Sonnet 5.5 <noreply@anthropic.com>`); never push; never edit the plan.
+5. **Stop and report instead of guessing** when the plan is ambiguous, contradicts the code, or needs a decision not written down.
+6. **Report back:** commits made, files changed, the last `make check` result (pass/fail + failing test names), anything skipped or assumed.
+
+### 4b. Check the task before the next one
+
+1. Read the report and `git diff` for the task's commits. Run `make check` yourself; don't trust the report alone.
+2. Matches the plan and the code rules? Go to the next task.
+3. Small fix needed? Send it back to the same subagent with `SendMessage` (it keeps its context). Two failed rounds on the same problem → do it yourself and note why in the PR's Technical notes.
+4. The subagent stopped on a real decision? Make the decision, write it into the plan (commit `FGC-<n>: plan update`), then continue the same subagent.
+
+### Rules for every task
+
 - If the work grows beyond Scope, stop, note it in the plan's Out of scope, and suggest a follow-up ticket (written with `writing-tickets`) instead of building it.
 - Update `CLAUDE.md` / README when a command, convention, or setup step changes.
 - New repeatable action (script, tool, Gradle task people run)? Add a `make` target with a `## description` and use it everywhere instead of the raw command.
